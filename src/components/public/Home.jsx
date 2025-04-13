@@ -35,7 +35,7 @@ const Home = () => {
   const { loans } = userLoansList;
   
   useEffect(() => {
-    if (userInfo) {
+    if (userInfo?.user?._id) {
       dispatch(getUserDetails(userInfo.user._id));
       dispatch(listMyGroups());
       dispatch(getWalletDetails(userInfo.user._id));
@@ -250,12 +250,18 @@ const Home = () => {
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4 className="mb-0">Wallet Overview</h4>
                 <div>
-                  <Link to={`/wallet/${userInfo?.user._id}/withdraw`}>
-                  <Button variant="outline-primary" size="sm" className="me-2">Withdraw</Button>
-                  </Link>
-                  <Link to={`/wallet/${userInfo?.user._id}/deposit`}>
+                {userInfo?.user?._id && (
+                    <Link to={`/wallet/${userInfo.user._id}/withdraw`}>
+                      Withdraw
+                    </Link>
+                  )}
+
+                {userInfo?.user?._id && (
+                  <Link to={`/wallet/${userInfo.user._id}/deposit`}>
                     <Button variant="primary" size="sm">Deposit</Button>
                   </Link>
+                )}
+
                   
                 </div>
               </div>
