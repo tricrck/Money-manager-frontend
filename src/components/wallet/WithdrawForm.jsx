@@ -341,8 +341,8 @@ const WithdrawForm = () => {
                        style={{ width: '60px', height: '60px', transition: 'all 0.2s ease' }}>
                     <FaUniversity size={28} className={paymentMethod === 'bank' ? 'text-white' : 'text-info'} />
                   </div>
-                  <h5>Bank Account</h5>
-                  <p className="text-muted small mb-0">ACH direct deposit</p>
+                  <h5>Cash Request</h5>
+                  <p className="text-muted small mb-0">Group Treasure direct withdrawal</p>
                   {paymentMethod === 'bank' && (
                     <div className="mt-2">
                       <FaCheckCircle className="text-success" />
@@ -357,7 +357,7 @@ const WithdrawForm = () => {
           <div className="alert alert-warning mt-4 d-flex">
             <FaExclamationTriangle className="me-2 mt-1" />
             <div className="small">
-              Withdrawal processing times may vary by method. Bank transfers typically take 1-3 business days, card withdrawals 24-48 hours, and M-Pesa within minutes.
+              Withdrawal processing times may vary by location of your Treasurer. Bank transfers typically take 1-2 business days, card withdrawals 24-48 hours, and M-Pesa within minutes.
             </div>
           </div>
           

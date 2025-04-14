@@ -53,6 +53,9 @@ main {
   header, footer {
     padding: 0.8rem;
   }
+  .container {
+    padding: 0;
+  }
 
   main {
     padding: 0.8rem;
@@ -72,5 +75,8 @@ main {
   .route-content {
     margin: 0.5rem 0;
     padding: 0.8rem;
+  }
+  .container {
+    padding: 0;
   }
 }

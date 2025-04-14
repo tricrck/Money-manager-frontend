@@ -136,7 +136,7 @@ const Home = () => {
           <Card className="h-100 shadow-sm">
             <Card.Body className="d-flex flex-column align-items-center justify-content-center p-3 p-md-4">
               <FaWallet className="text-primary mb-2" size={28} />
-              <h3 className="mb-1 fs-4">${wallet.balance}</h3>
+              <h3 className="mb-1 fs-4">Ksh {wallet.balance}</h3>
               <p className="text-muted mb-0 small">Wallet Balance</p>
             </Card.Body>
             <Card.Footer className="bg-white border-0 text-center p-2">
