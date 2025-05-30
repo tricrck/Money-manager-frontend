@@ -45,17 +45,15 @@ const Home = () => {
 
   const handleClose = () => {
     setShow(false);
-    if (success) {
-      // Reset form if submission was successful
-      setFormData({
-        loanType: 'personal',
-        principalAmount: '',
-        repaymentPeriod: '',
-        interestRate: 10,
-        interestType: 'simple',
-        purpose: ''
-      });
-    }
+    // Reset form always, not just on success
+    setFormData({
+      loanType: 'personal',
+      principalAmount: '',
+      repaymentPeriod: '',
+      interestRate: 10,
+      interestType: 'simple',
+      purpose: ''
+    });
   };
   
   const handleShow = () => setShow(true);
@@ -119,7 +117,19 @@ const Home = () => {
       </Container>
     );
   }
-
+  // Show loading state while data is being fetched
+  if (loading || loadingMy || !wallet || loans === undefined) {
+    return (
+      <Container className="py-4">
+        <div className="text-center">
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2">Loading your dashboard...</p>
+        </div>
+      </Container>
+    );
+  }
   // Logged in user view
   return (
     <Container className="py-4">
@@ -136,7 +146,7 @@ const Home = () => {
           <Card className="h-100 shadow-sm">
             <Card.Body className="d-flex flex-column align-items-center justify-content-center p-3 p-md-4">
               <FaWallet className="text-primary mb-2" size={28} />
-              <h3 className="mb-1 fs-4">Ksh {wallet.balance}</h3>
+              <h3 className="mb-1 fs-4">Ksh {wallet?.balance || 0}</h3>
               <p className="text-muted mb-0 small">Wallet Balance</p>
             </Card.Body>
             <Card.Footer className="bg-white border-0 text-center p-2">
@@ -164,7 +174,7 @@ const Home = () => {
           <Card className="h-100 shadow-sm">
             <Card.Body className="d-flex flex-column align-items-center justify-content-center p-3 p-md-4">
               <FaMoneyBill className="text-primary mb-2" size={28} />
-              <h3 className="mb-1 fs-4">{loans.filter(loan => loan.status === 'active').length}</h3>
+              <h3 className="mb-1 fs-4">{loans?.filter(loan => loan.status === 'active').length || 0}</h3>
               <p className="text-muted mb-0 small">Active Loans</p>
             </Card.Body>
             <Card.Footer className="bg-white border-0 text-center p-2">

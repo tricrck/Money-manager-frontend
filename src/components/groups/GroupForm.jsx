@@ -50,6 +50,7 @@ const GroupForm = () => {
   const groupDetails = useSelector((state) => state.groupDetails);
   const { loading: loadingDetails, error: errorDetails, group } = groupDetails;
 
+
   const groupCreate = useSelector((state) => state.groupCreate);
   const { loading: loadingCreate, error: errorCreate, success: successCreate } = groupCreate;
 
