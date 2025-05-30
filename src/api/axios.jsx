@@ -3,7 +3,7 @@ import store from '../store'; // Import your Redux store
 import { logout } from '../actions/userActions';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://money-manager-backend-iczs.onrender.com/api',
 });
 
 // Add a request interceptor to include the auth token
