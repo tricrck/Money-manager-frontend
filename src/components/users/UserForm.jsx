@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Alert, Card, InputGroup, Row, Col, Spinner } from 'react-bootstrap';
-import { 
-  FaUser, 
-  FaEnvelope, 
-  FaPhone, 
-  FaLock, 
-  FaLanguage, 
-  FaBell, 
-  FaIdCard, 
-  FaMapMarkerAlt,
-  FaUserCircle,
-  FaEye,
-  FaEyeSlash,
-  FaArrowLeft
-} from 'react-icons/fa';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { 
+  Eye, 
+  EyeOff, 
+  User, 
+  Mail, 
+  Phone, 
+  Lock, 
+  MapPin, 
+  Camera, 
+  Shield, 
+  Bell, 
+  Globe,
+  ArrowLeft,
+  Save,
+  AlertCircle,
+  CheckCircle,
+  Settings,
+  UserPlus
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { register, updateUser, getUserDetails, login } from '../../actions/userActions';
 
 const UserForm = () => {
@@ -33,7 +46,15 @@ const UserForm = () => {
   const [username, setUsername] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [county, setCounty] = useState('Nairobi');
-  const [profilePicture, setProfilePicture] = useState('');
+  const [profilePicture, setProfilePicture] = useState('@favicon.ico');
+  const [role, setRole] = useState('Member');
+  const [language, setLanguage] = useState('English');
+  const [isActive, setIsActive] = useState(true);
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    sms: true,
+    email: true,
+    push: true
+  });
   
   // UI state
   const [message, setMessage] = useState(null);
@@ -51,7 +72,13 @@ const UserForm = () => {
   const userDetails = useSelector((state) => state.userDetails);
   const { loading: loadingDetails, error: errorDetails, user } = userDetails;
 
-  // Counties list from User model
+  const userLogin = useSelector((state) => state.userLogin);
+  const { userInfo } = userLogin;
+
+  // Check if current user is admin
+  const isAdmin = userInfo?.user?.role === 'Admin';
+
+  // Counties list
   const counties = [
     "Mombasa", "Kwale", "Kilifi", "Tana River", "Lamu", "Taita Taveta",
     "Garissa", "Wajir", "Mandera", "Marsabit", "Isiolo", "Meru", 
@@ -62,6 +89,9 @@ const UserForm = () => {
     "Bomet", "Kakamega", "Vihiga", "Bungoma", "Busia", "Siaya", 
     "Kisumu", "Homa Bay", "Migori", "Kisii", "Nyamira", "Nairobi"
   ];
+
+  const roles = ['Member', 'Admin', 'Moderator'];
+  const languages = ['English', 'Swahili'];
 
   // Load user data when editing
   useEffect(() => {
@@ -76,6 +106,14 @@ const UserForm = () => {
         setIdNumber(user.idNumber || '');
         setCounty(user.county || 'Nairobi');
         setProfilePicture(user.profilePicture || '');
+        setRole(user.role || 'Member');
+        setLanguage(user.language || 'English');
+        setIsActive(user.isActive !== undefined ? user.isActive : true);
+        setNotificationPreferences(user.notificationPreferences || {
+          sms: true,
+          email: true,
+          push: true
+        });
       }
     }
   }, [dispatch, userId, user, isEditing]);
@@ -129,10 +167,17 @@ const UserForm = () => {
     }
   };
 
+  const handleNotificationChange = (type, value) => {
+    setNotificationPreferences(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
   const submitHandler = (e) => {
     e.preventDefault();
     
-    // Validate password match
+    // Validate password match for registration
     if (!isEditing && password !== confirmPassword) {
       setMessage('Passwords do not match');
       return;
@@ -144,7 +189,7 @@ const UserForm = () => {
     }
     
     if (isEditing) {
-      dispatch(updateUser({ 
+      const updateData = { 
         _id: userId, 
         name, 
         email, 
@@ -152,8 +197,18 @@ const UserForm = () => {
         username, 
         idNumber,
         county,
-        profilePicture
-      }));
+        profilePicture,
+        language,
+        notificationPreferences
+      };
+
+      // Only admins can update role and isActive status
+      if (isAdmin) {
+        updateData.role = role;
+        updateData.isActive = isActive;
+      }
+
+      dispatch(updateUser(updateData));
     } else {
       dispatch(register({ 
         name, 
@@ -170,267 +225,458 @@ const UserForm = () => {
     }
   };
 
-  return (
-    <Container className="py-4">
-      <Card className="mx-auto shadow-sm border-0 rounded-3" style={{ maxWidth: '600px' }}>
-        <Card.Body className="p-4">
-          <div className="d-flex align-items-center mb-4">
-            {isEditing && (
-              <Button 
-                variant="link" 
-                className="p-0 me-2 text-dark" 
-                onClick={() => navigate(-1)}
-                aria-label="Go back"
-              >
-                <FaArrowLeft />
-              </Button>
-            )}
-            <Card.Title className="m-0 text-center flex-grow-1">
-              {isEditing ? 'Edit Profile' : 'Create Account'}
-            </Card.Title>
-          </div>
+  const loading = loadingRegister || loadingUpdate || loadingDetails;
+  const error = errorRegister || errorUpdate || errorDetails;
 
-          {/* Alerts for feedback */}
-          {message && (
-            <Alert 
-              variant={message.includes('not match') ? 'danger' : 'success'}
-              dismissible
-              onClose={() => setMessage(null)}
-            >
-              {message}
-            </Alert>
-          )}
-          {(errorRegister || errorUpdate || errorDetails) && (
-            <Alert variant="danger">
-              {errorRegister || errorUpdate || errorDetails}
-            </Alert>
-          )}
-          
-          {/* Loading states */}
-          {(loadingDetails && isEditing) ? (
-            <div className="text-center my-4">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Loading user details...</p>
-            </div>
-          ) : (
-            <Form onSubmit={submitHandler}>
-              {/* Name */}
-              <Form.Group className="mb-3" controlId="name">
-                <Form.Label className="d-flex align-items-center">
-                  <FaUser className="me-2 text-secondary" />
-                  Full Name
-                </Form.Label>
-                <Form.Control
+  if (loadingDetails && userId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading user details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-center">
+        {isEditing && (
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button> )}
+        <div className="text-center">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold flex items-center gap-2">
+            {isEditing ? <User className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
+            {isEditing ? 'Edit User Profile' : 'Create New Account'}
+          </h1>
+
+          <p className="text-muted-foreground">
+            {isEditing 
+              ? 'Update user information and preferences' 
+              : 'Fill in your details to create a new account'
+            }
+          </p>
+        </div>
+        <div className="w-16" /> {/* Spacer for centering */}
+      </div>
+
+      {/* Status Messages */}
+      {message && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            {message}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={submitHandler} className="space-y-6">
+        {/* User Status Card (Edit mode only) */}
+        {isEditing && user && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Account Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Current Status</span>
+                  <div className="flex gap-2">
+                    <Badge variant={user.isVerified ? "default" : "secondary"}>
+                      {user.isVerified ? "Verified" : "Unverified"}
+                    </Badge>
+                    <Badge variant={user.isActive ? "default" : "destructive"}>
+                      {user.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                </div>
+                <Separator />
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {user.updatedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Updated:</span>
+                      <span className="font-medium">{new Date(user.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Basic Information
+            </CardTitle>
+            <CardDescription>
+              Personal details and contact information
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
                   type="text"
-                  placeholder="Enter your full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="py-2"
+                  placeholder="Enter your full name"
                 />
-              </Form.Group>
+              </div>
 
-              {/* Email */}
-              <Form.Group className="mb-3" controlId="email">
-                <Form.Label className="d-flex align-items-center">
-                  <FaEnvelope className="me-2 text-secondary" />
-                  Email Address
-                </Form.Label>
-                <Form.Control
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required={isEditing}
+                  placeholder="Choose a username"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <div className="relative">
+                <Input
+                  id="email"
                   type="email"
-                  placeholder="example@domain.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="py-2"
+                  placeholder="Enter your email"
+                  className="pl-10"
                 />
-              </Form.Group>
-
-              {/* Phone Number */}
-              <Form.Group className="mb-3" controlId="phoneNumber">
-                <Form.Label className="d-flex align-items-center">
-                  <FaPhone className="me-2 text-secondary" />
-                  Phone Number
-                </Form.Label>
-                <InputGroup>
-                  <Form.Control
-                    type="tel"
-                    placeholder="0701234567"
-                    value={phoneNumber}
-                    onChange={handlePhoneChange}
-                    required
-                    className="py-2"
-                    isInvalid={!!phoneError}
-                  />
-                </InputGroup>
-                <Form.Text className="text-muted">
-                  Format: 0701234567 or 254701234567
-                </Form.Text>
-                {phoneError && <Form.Control.Feedback type="invalid">{phoneError}</Form.Control.Feedback>}
-              </Form.Group>
-
-              {/* Password fields - Only for registration */}
-              {!isEditing && (
-                <>
-                  <Form.Group className="mb-3" controlId="password">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaLock className="me-2 text-secondary" />
-                      Password
-                    </Form.Label>
-                    <InputGroup>
-                      <Form.Control
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="py-2"
-                      />
-                      <Button 
-                        variant="outline-secondary" 
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                      </Button>
-                    </InputGroup>
-                  </Form.Group>
-
-                  <Form.Group className="mb-4" controlId="confirmPassword">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaLock className="me-2 text-secondary" />
-                      Confirm Password
-                    </Form.Label>
-                    <InputGroup>
-                      <Form.Control
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        className="py-2"
-                      />
-                      <Button 
-                        variant="outline-secondary" 
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                      >
-                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                      </Button>
-                    </InputGroup>
-                  </Form.Group>
-                </>
-              )}
-
-              {/* Additional fields for editing */}
-              {isEditing && (
-                <>
-                  <hr className="my-4" />
-                  <h5 className="mb-3">Additional Information</h5>
-                  
-                  {/* Username */}
-                  <Form.Group className="mb-3" controlId="username">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaUserCircle className="me-2 text-secondary" />
-                      Username
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Choose a username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="py-2"
-                    />
-                  </Form.Group>
-
-                  {/* ID Number */}
-                  <Form.Group className="mb-3" controlId="idNumber">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaIdCard className="me-2 text-secondary" />
-                      National ID Number
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Enter ID number"
-                      value={idNumber}
-                      onChange={(e) => setIdNumber(e.target.value)}
-                      className="py-2"
-                    />
-                  </Form.Group>
-
-                  {/* County */}
-                  <Form.Group className="mb-3" controlId="county">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaMapMarkerAlt className="me-2 text-secondary" />
-                      County
-                    </Form.Label>
-                    <Form.Select 
-                      value={county} 
-                      onChange={(e) => setCounty(e.target.value)}
-                      className="py-2"
-                    >
-                      {counties.map(countyName => (
-                        <option key={countyName} value={countyName}>
-                          {countyName}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-
-                  {/* Profile Picture URL */}
-                  <Form.Group className="mb-4" controlId="profilePicture">
-                    <Form.Label className="d-flex align-items-center">
-                      <FaUserCircle className="me-2 text-secondary" />
-                      Profile Picture URL
-                    </Form.Label>
-                    <Form.Control
-                      type="url"
-                      placeholder="https://example.com/profile.jpg"
-                      value={profilePicture}
-                      onChange={(e) => setProfilePicture(e.target.value)}
-                      className="py-2"
-                    />
-                  </Form.Group>
-                </>
-              )}
-
-              {/* Submit Button */}
-              <div className="d-grid gap-2">
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  size="lg"
-                  disabled={loadingRegister || loadingUpdate}
-                  className="py-2"
-                >
-                  {loadingRegister || loadingUpdate ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      {isEditing ? 'Updating...' : 'Creating Account...'}
-                    </>
-                  ) : (
-                    isEditing ? 'Save Changes' : 'Create Account'
-                  )}
-                </Button>
-                
-                {!isEditing && (
-                  <p className="text-center mt-3 mb-0">
-                    Already have an account? <a href="/login">Log In</a>
-                  </p>
-                )}
               </div>
-            </Form>
-          )}
-        </Card.Body>
-      </Card>
-    </Container>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <div className="relative">
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  required
+                  placeholder="0701234567"
+                  className={`pl-10 ${phoneError ? "border-red-500" : ""}`}
+                />
+              </div>
+              {phoneError && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {phoneError}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="idNumber">ID Number</Label>
+              <Input
+                id="idNumber"
+                type="text"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value)}
+                required={isEditing}
+                placeholder="Enter your ID number"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security Section (Registration only) */}
+        {!isEditing && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Security
+              </CardTitle>
+              <CardDescription>
+                Set up a secure password for your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Enter your password"
+                    className="pl-10 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="Confirm your password"
+                    className="pl-10 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Location & Preferences (Edit mode only) */}
+        {isEditing && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Location & Preferences
+              </CardTitle>
+              <CardDescription>
+                Your location and language preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="county">County</Label>
+                  <Select value={county} onValueChange={setCounty}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select county" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {counties.map((countyName) => (
+                        <SelectItem key={countyName} value={countyName}>
+                          {countyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="language">Language</Label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            {lang}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="profilePicture">Profile Picture URL</Label>
+                <div className="relative">
+                  <Input
+                    id="profilePicture"
+                    type="url"
+                    value={profilePicture}
+                    onChange={(e) => setProfilePicture(e.target.value)}
+                    placeholder="https://example.com/profile.jpg"
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Admin Controls (Edit mode and admin only) */}
+        {isEditing && isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Admin Controls
+              </CardTitle>
+              <CardDescription>
+                Administrative settings and permissions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">User Role</Label>
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((roleName) => (
+                        <SelectItem key={roleName} value={roleName}>
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            {roleName}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="isActive">Account Status</Label>
+                  <div className="flex items-center space-x-2 h-10">
+                    <Switch
+                      id="isActive"
+                      checked={isActive}
+                      onCheckedChange={setIsActive}
+                    />
+                    <Label htmlFor="isActive" className="text-sm font-medium">
+                      {isActive ? 'Active' : 'Inactive'}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notification Preferences (Edit mode only) */}
+        {isEditing && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Preferences
+              </CardTitle>
+              <CardDescription>
+                Choose how you want to receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="sms" className="text-base font-medium">SMS Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Receive notifications via SMS</p>
+                  </div>
+                  <Switch
+                    id="sms"
+                    checked={notificationPreferences.sms}
+                    onCheckedChange={(value) => handleNotificationChange('sms', value)}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-notif" className="text-base font-medium">Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                  </div>
+                  <Switch
+                    id="email-notif"
+                    checked={notificationPreferences.email}
+                    onCheckedChange={(value) => handleNotificationChange('email', value)}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="push" className="text-base font-medium">Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Receive push notifications</p>
+                  </div>
+                  <Switch
+                    id="push"
+                    checked={notificationPreferences.push}
+                    onCheckedChange={(value) => handleNotificationChange('push', value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Submit Button */}
+        <Card>
+          <CardContent className="pt-6">
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading}
+              size="lg"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {isEditing ? 'Updating...' : 'Creating Account...'}
+                </div>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {isEditing ? 'Update User' : 'Create Account'}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
   );
 };
 

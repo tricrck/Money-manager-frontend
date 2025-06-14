@@ -1,265 +1,327 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { getWalletDetails } from '../../actions/walletActions'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { 
-  Card, Container, Button, Alert, Row, Col, ListGroup, 
-  Badge, ProgressBar, Spinner, Tabs, Tab, Modal
-} from 'react-bootstrap';
-import { 
-  FaArrowLeft, FaMoneyBillWave, FaMoneyBillAlt, FaHistory, 
-  FaChartLine, FaInfoCircle, FaExchangeAlt, FaRegCreditCard,
-  FaAngleRight, FaEllipsisV, FaRegBell, FaUserCircle, FaWallet
-} from 'react-icons/fa';
-import { useDispatch, useSelector } from 'react-redux';
-import { getWalletDetails } from '../../actions/walletActions';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+  ArrowDownCircle, 
+  ArrowUpCircle, 
+  History, 
+  WalletCards,
+  CreditCard,
+  Smartphone
+} from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import DepositForm from './DepositForm'
+import WithdrawForm from './WithdrawForm'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatCurrency } from '@/lib/utils'
 
 const WalletDetails = () => {
-  const params = useParams();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [showModal, setShowModal] = useState(false);
-  const [activeAction, setActiveAction] = useState(null);
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-  const walletDetails = useSelector((state) => state.walletDetails);
-  const { loading, error, wallet = {} } = walletDetails;
+  const walletDetails = useSelector((state) => state.walletDetails)
+  const { loading, error, wallet = {} } = walletDetails
 
-  const userLogin = useSelector((state) => state.userLogin);
-  const { userInfo } = userLogin;
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
 
-  const userId = params.userId || userInfo?.user?._id;
-  
+  const userId = userInfo?.user?._id;
+
   // Quick action transaction amounts
-  const quickAmounts = [100, 500, 1000, 5000];
+  const quickAmounts = [100, 500, 1000, 5000]
+
+  // Safe access to transactions with default empty array
+  const transactions = Array.isArray(wallet?.transactions)
+  ? [...wallet.transactions].sort((a, b) => new Date(b.date) - new Date(a.date))
+  : [];
+  const balance = wallet.balance || 0
+  const currency = wallet.currency || 'KES'
 
   useEffect(() => {
     if (userInfo) {
-      dispatch(getWalletDetails(userId));
+      dispatch(getWalletDetails(userId))
     } else {
-      navigate('/login');
+      navigate('/login')
     }
-  }, [dispatch, navigate, userId, userInfo]);
-
-  const handleQuickAction = (action, amount = 0) => {
-    setActiveAction({ type: action, amount });
-    setShowModal(true);
-  };
+  }, [dispatch, navigate, userId, userInfo])
 
   
 
-  const confirmAction = () => {
-    // Handle the transaction
-    // In real implementation, call appropriate API endpoint
-    if (activeAction.type === 'deposit') {
-      console.log(`Depositing ${activeAction.amount}`);
-      // dispatch(depositFunds(userId, activeAction.amount));
-    } else if (activeAction.type === 'withdraw') {
-      console.log(`Withdrawing ${activeAction.amount}`);
-      // dispatch(withdrawFunds(userId, activeAction.amount));
-    }
-    setShowModal(false);
-  };
+  // Calculate totals safely
+  const totalDeposits = transactions
+    .filter(tx => tx.type === 'deposit')
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0)
 
-  const transactions = wallet.transactions || [];
+  const totalWithdrawals = transactions
+    .filter(tx => tx.type === 'withdrawal')
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0)
 
-  
-  // Calculate spending trend
-  const getTrend = () => {
-    if (transactions.length < 2) return { status: 'neutral', percentage: 0 };
-    
-    const withdrawals = transactions
-      .filter(t => t.type === 'withdrawal')
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
-    if (withdrawals.length < 2) return { status: 'neutral', percentage: 0 };
-    
-    const latestWithdrawal = withdrawals[0].amount;
-    const previousWithdrawal = withdrawals[1].amount;
-    
-    const difference = latestWithdrawal - previousWithdrawal;
-    const percentage = Math.round((difference / previousWithdrawal) * 100);
-    
-    return {
-      status: difference > 0 ? 'up' : difference < 0 ? 'down' : 'neutral',
-      percentage: Math.abs(percentage)
-    };
-  };
-  
-  const trend = getTrend();
-  
-  const renderTransactionIcon = (type) => {
-    switch (type) {
-      case 'deposit':
-        return <FaMoneyBillWave className="text-success" />;
-      case 'withdrawal':
-        return <FaMoneyBillAlt className="text-danger" />;
-      default:
-        return <FaExchangeAlt className="text-info" />;
-    }
-  };
+  if (loading) return <WalletDetailsSkeleton />
+  if (error) return <div>Error: {error}</div>
 
   return (
-    <Container fluid className="py-4 bg-light min-vh-100">
-     <Row className="mb-4 align-items-center">
-        <Col xs="auto">
-          <Link to="/" className="btn btn-light rounded-circle shadow-sm">
-            <FaArrowLeft />
-          </Link>
-        </Col>
-        <Col xs={8} sm={9} md={10} className="text-center text-md-start">
-          <h2 className="mb-0 fw-bold">My Wallet</h2>
-        </Col>
-        <Col xs="auto" className="d-flex gap-2">
-          <Button variant="light" className="rounded-circle shadow-sm">
-            <FaRegBell />
-          </Button>
-          <Button variant="light" className="rounded-circle shadow-sm">
-            <FaUserCircle />
-          </Button>
-        </Col>
-      </Row>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Wallet Dashboard</h1>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate(`/wallet/${userId}/transactions`)}
+        >
+          <History className="mr-2 h-4 w-4" />
+          View All Transactions
+        </Button>
+      </div>
 
-      <Card className="border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
-        <Card.Body className="p-4">
-          <Row>
-            <Col xs={12} md={6}>
-              <div className="mb-3 text-muted small">Total Balance</div>
-              <h1 className="fw-bold mb-3">
-                KES {(wallet.balance || 0).toLocaleString()}
-              </h1>
-              <div className="d-flex gap-2 align-items-center">
-                {trend.status === 'up' && (
-                  <Badge bg="danger" className="py-2 px-3 rounded-pill">
-                    <FaChartLine className="me-1" /> {trend.percentage}% Higher Spending
-                  </Badge>
-                )}
-                {trend.status === 'down' && (
-                  <Badge bg="success" className="py-2 px-3 rounded-pill">
-                    <FaChartLine className="me-1" /> {trend.percentage}% Lower Spending
-                  </Badge>
-                )}
-              </div>
-            </Col>
-            <Col xs={12} md={6} className="d-flex justify-content-md-end align-items-center mt-4 mt-md-0">
-              <div className="d-flex flex-column flex-md-row gap-2">
-                <Link to={`/wallet/${userId}/deposit`}>
-                  <Button variant="primary" className="d-flex align-items-center px-4 py-2 fw-bold shadow-sm">
-                    <FaMoneyBillWave className="me-2" /> Deposit
-                  </Button>
-                </Link>
-                <Link to={`/wallet/${userId}/withdraw`}>
-                  <Button variant="outline-primary" className="d-flex align-items-center px-4 py-2 fw-bold">
-                    <FaMoneyBillAlt className="me-2" /> Withdraw
-                  </Button>
-                </Link>
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
-
-      <Row className="mb-4">
-      <Col xs={12} sm={12} md={6} lg={5} className="mb-4">
-        <Card className="h-100 border-0 rounded-4 shadow-sm">
-          <Card.Header className="bg-white border-0 pt-3 pt-sm-4 pb-0 px-3 px-sm-4">
-            <h5 className="fw-bold fs-6 fs-sm-5">Quick Actions</h5>
-          </Card.Header>
-          <Card.Body className="px-2 px-sm-4">
-            <Row className="g-2 g-sm-3">
-              {quickAmounts.map((amount) => (
-                <Col xs={12} sm={6} md={6} xl={6} key={amount}>
-                  <Card
-                    className="border-0 shadow-sm hover-lift"
-                    onClick={() => handleQuickAction('deposit', amount)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <Card.Body className="text-center p-2 py-sm-3">
-                      <FaMoneyBillWave className="text-primary mb-1" size={16} />
-                      <div className="fw-bold fs-6">KES {amount}</div>
-                      <div className="small text-muted fs-7">Deposit</div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </Card.Body>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+            <WalletCards className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(balance)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Updated just now
+            </p>
+          </CardContent>
         </Card>
-      </Col>
 
-        <Col xs={12} lg={7}>
-          <Card className="h-100 border-0 rounded-4 shadow-sm">
-            <Card.Header className="bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-              <h5 className="fw-bold">Recent Transactions</h5>
-              <Link to={`/wallet/${userId}/transactions`} className="text-decoration-none">
-                View All <FaAngleRight size={12} className="ms-1" />
-              </Link>
-            </Card.Header>
-            <Card.Body className="px-0">
-              <ListGroup variant="flush">
-                {transactions.slice(0, 5).map((transaction) => (
-                  <ListGroup.Item key={transaction._id} className="px-4 py-3 border-top">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div className="d-flex align-items-center">
-                        <div className={`rounded-circle p-2 me-3 ${
-                          transaction.type === 'deposit' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'
-                        }`}>
-                          {renderTransactionIcon(transaction.type)}
-                        </div>
-                        <div>
-                          <div className="fw-bold">
-                            {transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
-                          </div>
-                          <div className="text-muted small">
-                            {new Date(transaction.date).toLocaleDateString()} • {new Date(transaction.date).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={transaction.type === 'deposit' ? 'text-success fw-bold' : 'text-danger fw-bold'}>
-                        {transaction.type === 'deposit' ? '+' : '-'} KES {transaction.amount.toLocaleString()}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
+            <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalDeposits)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              All-time deposits
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
+            <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalWithdrawals)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              All-time withdrawals
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+            <div className="h-4 w-4" />
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <ArrowDownCircle className="mr-2 h-4 w-4" />
+                  Deposit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-full max-w-[800px] mx-auto p-6">
+                <DialogHeader>
+                  <DialogTitle>Deposit Funds</DialogTitle>
+                  <DialogDescription>
+                    Add money to your wallet using M-Pesa or credit/debit card
+                  </DialogDescription>
+                </DialogHeader>
+                <DepositForm userId={userId} />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <ArrowUpCircle className="mr-2 h-4 w-4" />
+                  Withdraw
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-full max-w-[800px] mx-auto p-6">
+                <DialogHeader>
+                  <DialogTitle>Withdraw Funds</DialogTitle>
+                  <DialogDescription>
+                    Transfer money from your wallet to your bank account or mobile money
+                  </DialogDescription>
+                </DialogHeader>
+                <WithdrawForm userId={userId} />
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No transactions yet</p>
+              ) : (
+                transactions.slice(0, 5).map((tx) => (
+                  <div key={tx._id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      {tx.type === 'deposit' ? (
+                        <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{tx.description || 'Transaction'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(tx.date).toLocaleString()}
+                        </p>
                       </div>
                     </div>
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      {/* Transaction Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {activeAction?.type === 'deposit' ? 'Confirm Deposit' : 'Confirm Withdrawal'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="text-center mb-4">
-            <div className="display-5 fw-bold">KES {activeAction?.amount.toLocaleString()}</div>
-            <p className="text-muted">
-              {activeAction?.type === 'deposit' 
-                ? 'Amount will be added to your wallet' 
-                : 'Amount will be deducted from your wallet'}
-            </p>
-          </div>
-          
-          <Alert variant="info" className="d-flex align-items-center">
-            <FaInfoCircle className="me-2" size={16} />
-            <div>
-              {activeAction?.type === 'deposit'
-                ? 'Funds will be available immediately in your wallet'
-                : 'Withdrawal processing may take 1-2 business days'}
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {tx.type === 'deposit' ? '+' : '-'}
+                        {formatCurrency(tx.amount || 0)}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {tx.paymentMethod || 'Unknown'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          </Alert>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={confirmAction}>
-            Confirm {activeAction?.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
-  );
-};
+          </CardContent>
+        </Card>
 
-export default WalletDetails;
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Deposit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {quickAmounts.map((amount) => (
+                <Dialog key={amount}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="h-16">
+                      {formatCurrency(amount)}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Deposit {formatCurrency(amount)}</DialogTitle>
+                    </DialogHeader>
+                    <DepositForm userId={userId} defaultAmount={amount} />
+                  </DialogContent>
+                </Dialog>
+              ))}
+            </div>
+            <Separator className="my-4" />
+            <div className="grid grid-cols-2 gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-16">
+                    <Smartphone className="mr-2 h-4 w-4" />
+                    M-Pesa
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Deposit via M-Pesa</DialogTitle>
+                  </DialogHeader>
+                  <DepositForm userId={userId} defaultMethod="M-Pesa" />
+                </DialogContent>
+              </Dialog>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-16">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Card
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Deposit via Card</DialogTitle>
+                  </DialogHeader>
+                  <DepositForm userId={userId} defaultMethod="Stripe" />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+const WalletDetailsSkeleton = () => {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-1/4" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-3/4 mt-2" />
+              <Skeleton className="h-3 w-1/2 mt-2" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-6 w-1/4" />
+            </CardHeader>
+            <CardContent>
+              {[...Array(5)].map((_, j) => (
+                <div key={j} className="flex items-center justify-between py-2">
+                  <div className="flex items-center space-x-4">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div>
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16 mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-3 w-12 mt-1" />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default WalletDetails

@@ -1,80 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
-import { Button, Spinner, Card, Row, Col, Form } from "react-bootstrap";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Button } from "@/components/ui/button";
+import { useDispatch, useSelector } from "react-redux";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import { initiateStripePayment } from "../../actions/paymentActions";
-import {
-  FaCreditCard,
-  FaLock,
-  FaShieldAlt,
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaMoneyBillWave,
-  FaInfoCircle
-} from "react-icons/fa";
 
-const StripePaymentForm = ({
-  amount,
-  currency,
-  description,
-  userId,
-  onSuccess,
-  onError,
-  disabled
-}) => {
-  const [cardError, setCardError] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [focused, setFocused] = useState(false);
-
-  const dispatch = useDispatch();
+const StripePaymentForm = ({ amount, currency, description, onSuccess, onError }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const dispatch = useDispatch();
+  
+  // Get userId from Redux store (adjust the path based on your store structure)
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
 
-  // Format currency symbol
-  const getCurrencySymbol = (curr) => {
-    switch (curr.toLowerCase()) {
-      case "usd": return "$";
-      case "eur": return "€";
-      case "gbp": return "£";
-      case "kes": return "KSh";
-      default: return "$";
-    }
-  };
-
-  // Card element style
-  const cardElementStyle = {
-    style: {
-      base: {
-        fontSize: "16px",
-        color: "#424770",
-        fontFamily: "'Source Sans Pro', 'Helvetica', sans-serif",
-        fontSmoothing: "antialiased",
-        "::placeholder": {
-          color: "#aab7c4",
-        },
-        iconColor: "#0d6efd",
-      },
-      invalid: {
-        color: "#dc3545",
-        iconColor: "#dc3545"
-      },
-      complete: {
-        color: "#198754",
-        iconColor: "#198754"
-      }
-    },
-    hidePostalCode: true,
-  };
-
-  const handleCardChange = (event) => {
-    setCardComplete(event.complete);
-    if (event.error) {
-      setCardError(event.error.message);
-    } else {
-      setCardError("");
-    }
-  };
+  const userId = userInfo?.user?._id;
+  
+  const [cardComplete, setCardComplete] = useState(false);
+  const [error, setError] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,6 +35,17 @@ const StripePaymentForm = ({
       onError("Payment system not ready - please wait");
       return;
     }
+
+     // Check if Stripe is being blocked
+    try {
+      // Test Stripe connectivity
+      await stripe.createToken({ type: 'card' });
+    } catch (connectivityError) {
+      if (connectivityError.message.includes('Failed to fetch')) {
+        onError("Payment service blocked by browser extension or firewall. Please disable ad blockers and try again.");
+        return;
+      }
+    }
   
     const amountValue = parseFloat(amount);
     if (isNaN(amountValue)) {
@@ -95,7 +53,8 @@ const StripePaymentForm = ({
       return;
     }
   
-    setIsProcessing(true);
+    setProcessing(true);
+    setError(null);
   
     try {
       let paymentMethodId;
@@ -137,116 +96,75 @@ const StripePaymentForm = ({
       onSuccess();
     } catch (err) {
       const errorMessage = err.message || "Payment failed. Please check your card details.";
-      setCardError(errorMessage);
+      setError(errorMessage);
       onError(errorMessage);
       console.error("Payment error:", err);
     } finally {
-      setIsProcessing(false);
+      setProcessing(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <Card className="shadow-sm border-0 mb-4">
-        <Card.Header className="bg-light">
-          <h5 className="mb-0 d-flex align-items-center">
-            <FaCreditCard className="text-primary me-2" /> Card Details
-          </h5>
-        </Card.Header>
-        <Card.Body>
-          <div 
-            className={`card-element-container p-3 border rounded mb-3 ${focused ? 'border-primary shadow-sm' : ''} ${cardError ? 'border-danger' : ''} ${cardComplete && !cardError ? 'border-success' : ''}`}
-            style={{ transition: 'all 0.2s ease' }}
-          >
-            <CardElement 
-              options={cardElementStyle} 
-              onChange={handleCardChange}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
+      <Card>
+        <CardHeader>
+          <CardTitle>Card Details</CardTitle>
+          <CardDescription>Enter your credit or debit card.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount</Label>
+            <Input id="amount" value={`$${amount}`} disabled />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="card">Credit Card</Label>
+            <CardElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: "16px",
+                    color: "#424770",
+                    "::placeholder": {
+                      color: "#aab7c4",
+                    },
+                  },
+                  invalid: {
+                    color: "#dc3545",
+                  },
+                },
+                hidePostalCode: true,
+              }}
+              onChange={(e) => {
+                setCardComplete(e.complete);
+                if (e.error) {
+                  setError(e.error.message);
+                } else {
+                  setError(null);
+                }
+              }}
             />
           </div>
-          
-          {cardError && (
-            <div className="text-danger mb-3 d-flex align-items-center">
-              <FaExclamationCircle className="me-2" />
-              <small>{cardError}</small>
+
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 text-sm">
+              <AlertCircle size={16} />
+              <span>{error}</span>
             </div>
           )}
+        </CardContent>
 
-          <div className="d-flex justify-content-between mb-3">
-            <div className="d-flex align-items-center text-muted">
-              <FaLock className="me-1" size={14} />
-              <small>Secure Payment</small>
-            </div>
-            <div className="d-flex align-items-center text-muted">
-              <FaShieldAlt className="me-1" size={14} />
-              <small>Protected by SSL</small>
-            </div>
-          </div>
-
-          <div className="payment-summary bg-light p-3 rounded mb-4">
-            <Row>
-              <Col>
-                <div className="text-muted mb-1">Amount</div>
-                <h4 className="d-flex align-items-center mb-0">
-                  <FaMoneyBillWave className="text-success me-2" />
-                  {getCurrencySymbol(currency)}{amount || "0"}
-                </h4>
-              </Col>
-              {description && (
-                <Col xs="auto">
-                  <div className="text-muted mb-1">Description</div>
-                  <div className="small">{description}</div>
-                </Col>
-              )}
-            </Row>
-          </div>
-
-          <div className="d-grid">
-            <Button
-              variant="primary"
-              size="lg"
-              type="submit"
-              disabled={!stripe || isProcessing || !amount || !cardComplete || disabled}
-              className="py-3 position-relative overflow-hidden"
-            >
-              {isProcessing ? (
-                <>
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                    className="me-2"
-                  />
-                  Processing Payment...
-                </>
-              ) : (
-                <>
-                  {cardComplete ? <FaCheckCircle className="me-2" /> : <FaCreditCard className="me-2" />}
-                  Pay {getCurrencySymbol(currency)}{amount || "0"}
-                </>
-              )}
-            </Button>
-          </div>
-        </Card.Body>
-        <Card.Footer className="bg-white border-top-0">
-          <div className="d-flex align-items-center justify-content-center text-muted small">
-            <FaInfoCircle className="me-2" size={14} />
-            <span>We never store your card details</span>
-          </div>
-        </Card.Footer>
+        <CardFooter className="flex justify-between">
+          <Button 
+            type="submit" 
+            disabled={!stripe || processing || !cardComplete} 
+            className={processing ? "opacity-50 cursor-not-allowed" : ""}
+          >
+            {processing ? "Processing..." : "Pay Now"}
+          </Button>
+        </CardFooter>
       </Card>
-
-      <div className="text-center mt-3">
-        <img 
-          src="/images/payment-methods.png" 
-          alt="Supported Payment Methods" 
-          style={{ maxHeight: "24px", opacity: 0.7 }}
-          className="d-none d-md-inline-block"
-        />
-      </div>
     </form>
   );
 };

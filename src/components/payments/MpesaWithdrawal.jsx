@@ -1,176 +1,153 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Alert, Row, Col } from 'react-bootstrap';
-import { FaMobileAlt, FaMoneyBillWave, FaArrowLeft } from 'react-icons/fa';
-import { useDispatch, useSelector } from 'react-redux';
-import { initiateMpesaWithdrawal } from '../../actions/paymentActions';
-import { getWalletDetails } from '../../actions/walletActions';
-import { Link, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { initiateMpesaWithdrawal, resetPaymentState } from '../../actions/paymentActions'
+import { getWalletDetails } from '../../actions/walletActions'
+import {
+  Smartphone,
+  AlertCircle,
+  Loader2
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
+import PaymentStatus from './PaymentStatus'
 
-const MpesaWithdrawal = ({ history, match }) => {
-  const params = useParams();
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [amount, setAmount] = useState(0);
-  const [withdrawalPurpose, setWithdrawalPurpose] = useState('loan_disbursement');
-  const [reason, setReason] = useState('BusinessPayment');
-  const [description, setDescription] = useState('');
+// Receives amount (number), userId (string), and onClose callback from parent modal
+const MpesaWithdrawal = ({ amount, userId, onClose }) => {
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [isValidPhone, setIsValidPhone] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [statusObj, setStatusObj] = useState(null)
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
+  const walletDetails = useSelector((state) => state.walletDetails)
+  const { wallet, loading: walletLoading, error: walletError } = walletDetails
 
-  const walletDetails = useSelector((state) => state.walletDetails);
-  const { wallet } = walletDetails;
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
+  const mpesaState = useSelector(state => state.mpesaWithdrawal)
+  const { loading, error, success, withdrawal: rawWithdrawal } = mpesaState
 
-  const mpesaWithdrawal = useSelector((state) => state.mpesaWithdrawal);
-  const { loading, error, success, withdrawal } = mpesaWithdrawal;
+  // Build enriched withdrawal status
+  const withdrawal = rawWithdrawal && {
+    ...rawWithdrawal,
+    status: rawWithdrawal.ResponseCode === '0' ? 'success' : 'failed'
+  }
 
-  const userLogin = useSelector((state) => state.userLogin);
-  const { userInfo } = userLogin;
-
-  const userId = params.userId || userInfo?.user?._id;
-
+  // Initialize phone from userInfo
   useEffect(() => {
-    if (!userInfo) {
-      history.push('/login');
-    } else {
-      if (wallet && wallet.user && wallet.user._id !== userId) {
-          dispatch(getWalletDetails(userId));
-      }
-    }
-  }, [dispatch, history, userId, wallet, userInfo]);
+    if (userInfo?.user?.phoneNumber) setPhoneNumber(userInfo.user.phoneNumber)
+  }, [userInfo])
 
-  const submitHandler = (e) => {
-    e.preventDefault();
-    const withdrawalData = {
-      phoneNumber,
-      amount: Number(amount),
-      reason,
-      withdrawalPurpose,
-      relatedItemId: wallet._id,
-      metadata: { userId },
-      description,
-    };
-    dispatch(initiateMpesaWithdrawal(withdrawalData));
-  };
+  // Validate Kenyan phone
+  useEffect(() => {
+    const regex = /^(?:254|\+254|0)?(7\d{8})$/
+    setIsValidPhone(regex.test(phoneNumber))
+  }, [phoneNumber])
+
+  // Handle state changes from redux
+  useEffect(() => {
+    if (loading) setIsSubmitting(true)
+    if (!loading && success && withdrawal) {
+      setStatusObj(withdrawal)
+      setIsSubmitting(false)
+      toast.success('Withdrawal Initiated')
+      // invoke parent close with success data
+      onClose(true, withdrawal)
+      // refresh wallet
+      dispatch(getWalletDetails(userId))
+      dispatch(resetPaymentState())
+    }
+    if (!loading && error) {
+      setIsSubmitting(false)
+      toast.error('Withdrawal failed')
+      onClose(false)
+    }
+  }, [loading, success, error, withdrawal, dispatch, onClose, userId])
+
+  const numericAmount = amount
+  const isValidAmount = numericAmount > 0 && numericAmount <= (wallet?.balance || 0)
+
+  const handleSubmit = e => {
+    e.preventDefault()
+    if (!isValidPhone || !isValidAmount) return
+    const formatted = phoneNumber.startsWith('254')
+      ? phoneNumber
+      : '254' + phoneNumber.replace(/^0/, '')
+
+    dispatch(initiateMpesaWithdrawal({
+      phoneNumber: formatted,
+      amount: numericAmount,
+      reason: 'BusinessPayment',
+      withdrawalPurpose: 'loan_repayment', // <- updated purpose
+      relatedItemId: 'order' + formatted,            // <- updated related ID
+      metadata: { userId },                // <- unchanged
+    }))
+
+  }
+
+  if (walletLoading) return <Loader2 className="animate-spin m-auto" />
+  if (walletError) return (
+    <div className="text-center text-red-500">
+      <p>Unable to load wallet</p>
+      <Button onClick={() => dispatch(getWalletDetails(userId))}>Retry</Button>
+    </div>
+  )
+
+  // Show status component if already initiated
+  if (statusObj) {
+    return (
+      <PaymentStatus
+        id={statusObj.transactionId}
+        status={statusObj.status || 'PENDING'}
+        type="withdrawal"
+        navigateToWallet={false}
+        userId={userId}
+      />
+    )
+  }
 
   return (
-    <Container className="py-5">
-      <Link to={`/wallet/${userId}`} className="btn btn-light my-3">
-        <FaArrowLeft /> Back to Wallet
-      </Link>
-      <h2 className="mb-4">
-        <FaMobileAlt /> M-Pesa Withdrawal
-      </h2>
-      {error && <Alert variant="danger">{error}</Alert>}
-      {success && (
-        <Alert variant="success">
-          Withdrawal initiated successfully! Check your phone to confirm.
-        </Alert>
-      )}
-      <Form onSubmit={submitHandler}>
-        <Row>
-          <Col md={6}>
-            <Form.Group controlId="phoneNumber" className="mb-3">
-              <Form.Label>Phone Number</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="e.g. 254712345678"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
-              />
-            </Form.Group>
+    <form onSubmit={handleSubmit} className="space-y-4 p-4">
+      <div className="space-y-2">
+        <Label>Withdraw (KES)</Label>
+        <Input value={formatCurrency(numericAmount, 'KES')} readOnly disabled />
+        {!isValidAmount && (
+          <p className="text-sm text-red-500">
+            <AlertCircle className="inline-block mr-1" />
+            {numericAmount > (wallet?.balance || 0)
+              ? 'Amount exceeds balance'
+              : 'Invalid amount'}
+          </p>
+        )}
+      </div>
 
-            <Form.Group controlId="amount" className="mb-3">
-              <Form.Label>Amount (KES)</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                min="1"
-                max={wallet?.balance}
-              />
-              {wallet?.balance && (
-                <Form.Text className="text-muted">
-                  Available balance: KES {wallet.balance.toLocaleString()}
-                </Form.Text>
-              )}
-            </Form.Group>
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone Number</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={phoneNumber}
+          onChange={e => /^[0-9]*$/.test(e.target.value) && setPhoneNumber(e.target.value)}
+          placeholder="07XXXXXXXX"
+        />
+        {!isValidPhone && phoneNumber && (
+          <p className="text-sm text-red-500">
+            <AlertCircle className="inline-block mr-1" />Invalid Kenyan number
+          </p>
+        )}
+      </div>
 
-            <Form.Group controlId="withdrawalPurpose" className="mb-3">
-              <Form.Label>Withdrawal Purpose</Form.Label>
-              <Form.Control
-                as="select"
-                value={withdrawalPurpose}
-                onChange={(e) => setWithdrawalPurpose(e.target.value)}
-              >
-                <option value="loan_disbursement">Loan Disbursement</option>
-                <option value="wallet_withdrawal">Wallet Withdrawal</option>
-                <option value="other">Other</option>
-              </Form.Control>
-            </Form.Group>
+      <div className="flex justify-end pt-4">
+        <Button
+          type="submit"
+          disabled={!isValidPhone || !isValidAmount || isSubmitting}
+        >{isSubmitting ? <Loader2 className="animate-spin mr-2" /> : 'Confirm'}</Button>
+      </div>
+    </form>
+  )
+}
 
-            <Form.Group controlId="reason" className="mb-3">
-              <Form.Label>Reason</Form.Label>
-              <Form.Control
-                as="select"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              >
-                <option value="BusinessPayment">Business Payment</option>
-                <option value="SalaryPayment">Salary Payment</option>
-                <option value="PromotionPayment">Promotion Payment</option>
-              </Form.Control>
-            </Form.Group>
-
-            <Form.Group controlId="description" className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Enter withdrawal description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </Form.Group>
-
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Processing...' : (
-                <>
-                  <FaMoneyBillWave /> Initiate Withdrawal
-                </>
-              )}
-            </Button>
-          </Col>
-          <Col md={6}>
-            {success && withdrawal && (
-              <div className="border p-3 rounded">
-                <h5>Withdrawal Details</h5>
-                <p>
-                  <strong>Transaction ID:</strong> {withdrawal.transactionId}
-                </p>
-                <p>
-                  <strong>Amount:</strong> KES {withdrawal.amount.toLocaleString()}
-                </p>
-                <p>
-                  <strong>Phone Number:</strong> {withdrawal.phoneNumber}
-                </p>
-                <p>
-                  <strong>Status:</strong> Pending
-                </p>
-                <Button
-                  variant="info"
-                  onClick={() => history.push(`/payments/withdrawal/status/${withdrawal.transactionId}`)}
-                >
-                  Check Withdrawal Status
-                </Button>
-              </div>
-            )}
-          </Col>
-        </Row>
-      </Form>
-    </Container>
-  );
-};
-
-export default MpesaWithdrawal;
+export default MpesaWithdrawal

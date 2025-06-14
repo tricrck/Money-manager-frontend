@@ -1,144 +1,479 @@
-import React, { useEffect } from 'react';
-import { Card, Container, Button, Alert, Badge, ListGroup, Row, Col } from 'react-bootstrap';
-import { Link, useParams } from 'react-router-dom';
-import { FaArrowLeft, FaEdit, FaTrash, FaCheck, FaMoneyBillWave } from 'react-icons/fa';
-import { useDispatch, useSelector } from 'react-redux';
-import { getLoanDetails } from '../../actions/loanActions';
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate, useParams } from 'react-router-dom'
+import { getLoanDetails } from '../../actions/loanActions'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { 
+  DollarSign,
+  Calendar,
+  Users,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  CreditCard,
+  Percent,
+  Shield,
+  Target
+} from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatCurrency } from '@/lib/utils'
 
-const LoanDetails = ({ match, history }) => {
-  const { loanId } = useParams();
-  console.log(loanId);
+const LoanDetails = () => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { loanId } = useParams()
 
-  const dispatch = useDispatch();
+  const loanDetails = useSelector((state) => state.loanDetails)
+  const { loading, error, loan = {} } = loanDetails
 
-  const loanDetails = useSelector((state) => state.loanDetails);
-  const { loading, error, loan } = loanDetails;
-
-  const userLogin = useSelector((state) => state.userLogin);
-  const { userInfo } = userLogin;
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
 
   useEffect(() => {
     if (userInfo) {
-        console.log(loanId);
-      dispatch(getLoanDetails(loanId));
+      console.log(loanId)
+      dispatch(getLoanDetails(loanId))
     } else {
-      history.push('/login');
+      navigate('/login')
     }
-  }, [dispatch, history, loanId, userInfo]);
+  }, [dispatch, navigate, loanId, userInfo])
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'pending':
-        return <Badge bg="warning">Pending</Badge>;
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Pending</Badge>
       case 'approved':
-        return <Badge bg="success">Approved</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">Approved</Badge>
       case 'rejected':
-        return <Badge bg="danger">Rejected</Badge>;
+        return <Badge className="bg-red-500 hover:bg-red-600">Rejected</Badge>
       case 'disbursed':
-        return <Badge bg="primary">Disbursed</Badge>;
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Disbursed</Badge>
       case 'repaid':
-        return <Badge bg="info">Repaid</Badge>;
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Repaid</Badge>
       case 'defaulted':
-        return <Badge bg="dark">Defaulted</Badge>;
+        return <Badge className="bg-gray-800 hover:bg-gray-900">Defaulted</Badge>
       default:
-        return <Badge bg="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{status}</Badge>
     }
-  };
+  }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4" />
+      case 'approved':
+        return <CheckCircle className="h-4 w-4" />
+      case 'rejected':
+        return <XCircle className="h-4 w-4" />
+      case 'disbursed':
+        return <DollarSign className="h-4 w-4" />
+      case 'repaid':
+        return <CheckCircle className="h-4 w-4" />
+      case 'defaulted':
+        return <AlertCircle className="h-4 w-4" />
+      default:
+        return <FileText className="h-4 w-4" />
+    }
+  }
+
+  // Safe access to loan properties
+  const repaymentSchedule = Array.isArray(loan?.repaymentSchedule) 
+    ? loan.repaymentSchedule.sort((a, b) => a.installmentNumber - b.installmentNumber)
+    : []
+  
+  const guarantors = Array.isArray(loan?.guarantors) ? loan.guarantors : []
+  const collateral = loan?.collateral || {}
+  const user = loan?.user || {}
+  const group = loan?.group || {}
+
+  // Calculate progress
+  const totalRepayable = loan?.totalRepayableAmount || 0
+  const amountRepaid = loan?.amountRepaid || 0
+  const remainingAmount = totalRepayable - amountRepaid
+  const repaymentProgress = totalRepayable > 0 ? (amountRepaid / totalRepayable) * 100 : 0
+
+  // Count paid installments
+  const paidInstallments = repaymentSchedule.filter(installment => installment.paid).length
+  const totalInstallments = repaymentSchedule.length
+
+  if (loading) return <LoanDetailsSkeleton />
+  if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>
 
   return (
-    <Container className="py-5">
-      <Link to="/loans" className="btn btn-light my-3">
-        <FaArrowLeft /> Go Back
-      </Link>
-      <h2 className="mb-4">Loan Details</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <Alert variant="danger">{error}</Alert>
-      ) : (
-        <>
-          <Card>
-            <Card.Body>
-              <Card.Title>
-                <strong>Loan ID:</strong> {loan._id}
-              </Card.Title>
-              <Card.Text>
-                <strong>Type:</strong> {loan.loanType}
-              </Card.Text>
-              <Card.Text>
-                <strong>Status:</strong> {getStatusBadge(loan.status)}
-              </Card.Text>
-            </Card.Body>
-          </Card>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Loan Details</h1>
+          <p className="text-muted-foreground">Loan ID: {loan._id}</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          {getStatusIcon(loan.status)}
+          {getStatusBadge(loan.status)}
+        </div>
+      </div>
 
-          <Row className="mt-4">
-            <Col md={6}>
-              <Card>
-                <Card.Header>Loan Terms</Card.Header>
-                <ListGroup variant="flush">
-                  <ListGroup.Item>
-                    <strong>Principal Amount:</strong> ${loan.principalAmount?.toLocaleString()}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Repayment Period:</strong> {loan.repaymentPeriod} months
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Interest Rate:</strong> {loan.interestRate}%
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Interest Type:</strong> {loan.interestType}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Processing Fee:</strong> ${loan.processingFee?.toLocaleString()}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Purpose:</strong> {loan.purpose}
-                  </ListGroup.Item>
-                </ListGroup>
-              </Card>
-            </Col>
+      {/* Overview Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Principal Amount</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(loan.principalAmount || 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Original loan amount
+            </p>
+          </CardContent>
+        </Card>
 
-            <Col md={6}>
-              <Card>
-                <Card.Header>Collateral Information</Card.Header>
-                <ListGroup variant="flush">
-                  <ListGroup.Item>
-                    <strong>Description:</strong> {loan.collateral?.description || 'N/A'}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Value:</strong> ${loan.collateral?.value?.toLocaleString() || '0'}
-                  </ListGroup.Item>
-                </ListGroup>
-              </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Repayable</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalRepayable)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Including interest & fees
+            </p>
+          </CardContent>
+        </Card>
 
-              <Card className="mt-4">
-                <Card.Header>Related Parties</Card.Header>
-                <ListGroup variant="flush">
-                  <ListGroup.Item>
-                    <strong>User:</strong> {loan.user?.name}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <strong>Group:</strong> {loan.group?.name || 'N/A'}
-                  </ListGroup.Item>
-                </ListGroup>
-              </Card>
-            </Col>
-          </Row>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Amount Repaid</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(amountRepaid)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {repaymentProgress.toFixed(1)}% completed
+            </p>
+          </CardContent>
+        </Card>
 
-          <div className="mt-4 d-flex justify-content-between">
-            <Link to={`/loans/${loan._id}/edit`} className="btn btn-primary">
-              <FaEdit /> Edit Loan
-            </Link>
-            {loan.status === 'approved' && (
-              <Button variant="success" onClick={() => disburseHandler(loan._id)}>
-                <FaMoneyBillWave /> Disburse Loan
-              </Button>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Remaining Balance</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(remainingAmount)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Outstanding amount
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Loan Information Grid */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loan Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Loan Type</p>
+                <p className="text-sm capitalize">{loan.loanType}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Interest Rate</p>
+                <p className="text-sm">{loan.interestRate}% ({loan.interestType})</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Repayment Period</p>
+                <p className="text-sm">{loan.repaymentPeriod} months</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Processing Fee</p>
+                <p className="text-sm">{formatCurrency(loan.processingFee || 0)}</p>
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Application Date</p>
+              <p className="text-sm">{new Date(loan.applicationDate).toLocaleDateString()}</p>
+            </div>
+            {loan.purpose && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Purpose</p>
+                  <p className="text-sm">{loan.purpose}</p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Borrower & Group Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Borrower</p>
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-blue-600">
+                    {user.name?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+            </div>
+            
+            {group.name && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Group</p>
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{group.name}</p>
+                      <p className="text-xs text-muted-foreground">{group.description}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {guarantors.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Guarantors ({guarantors.length})
+                  </p>
+                  <div className="space-y-2">
+                    {guarantors.map((guarantor) => (
+                      <div key={guarantor._id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 bg-gray-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium">
+                              {guarantor.user?.name?.charAt(0) || 'G'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium">{guarantor.user?.name}</p>
+                            <p className="text-xs text-muted-foreground">{guarantor.user?.email}</p>
+                          </div>
+                        </div>
+                        <Badge variant={guarantor.approved ? "default" : "secondary"} className="text-xs">
+                          {guarantor.approved ? "Approved" : "Pending"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Collateral Information */}
+      {collateral.description && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="h-5 w-5" />
+              <span>Collateral Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Description</p>
+                <p className="text-sm">{collateral.description}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Estimated Value</p>
+                <p className="text-sm font-bold">{formatCurrency(collateral.value || 0)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Repayment Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Repayment Schedule</span>
+            <Badge variant="outline">
+              {paidInstallments}/{totalInstallments} paid
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {repaymentSchedule.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No repayment schedule available</p>
+            ) : (
+              repaymentSchedule.map((installment) => {
+                const isOverdue = new Date(installment.dueDate) < new Date() && !installment.paid
+                const daysUntilDue = Math.ceil((new Date(installment.dueDate) - new Date()) / (1000 * 60 * 60 * 24))
+                
+                return (
+                  <div key={installment._id} className={`flex items-center justify-between p-4 rounded-lg border ${
+                    installment.paid ? 'bg-green-50 border-green-200' : 
+                    isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50'
+                  }`}>
+                    <div className="flex items-center space-x-4">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        installment.paid ? 'bg-green-500' : 
+                        isOverdue ? 'bg-red-500' : 'bg-gray-400'
+                      }`}>
+                        <span className="text-xs font-medium text-white">
+                          {installment.installmentNumber}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          Installment #{installment.installmentNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Due: {new Date(installment.dueDate).toLocaleDateString()}
+                          {!installment.paid && !isOverdue && daysUntilDue > 0 && (
+                            <span className="ml-2">({daysUntilDue} days remaining)</span>
+                          )}
+                          {isOverdue && (
+                            <span className="ml-2 text-red-600 font-medium">(Overdue)</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">
+                        {formatCurrency(installment.totalAmount || 0)}
+                      </p>
+                      <div className="flex space-x-2 text-xs text-muted-foreground">
+                        <span>Principal: {formatCurrency(installment.principalAmount || 0)}</span>
+                        <span>Interest: {formatCurrency(installment.interestAmount || 0)}</span>
+                      </div>
+                      {installment.paid && (
+                        <Badge className="mt-1 bg-green-500 hover:bg-green-600 text-xs">
+                          Paid
+                        </Badge>
+                      )}
+                      {installment.lateFee > 0 && (
+                        <p className="text-xs text-red-600">
+                          Late Fee: {formatCurrency(installment.lateFee)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
-        </>
-      )}
-    </Container>
-  );
-};
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
-export default LoanDetails;
+const LoanDetailsSkeleton = () => {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        <Skeleton className="h-6 w-20" />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-3/4 mt-2" />
+              <Skeleton className="h-3 w-1/2 mt-2" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-6 w-1/4" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j}>
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-1/2 mt-1" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-1/4" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-lg border bg-gray-50">
+                <div className="flex items-center space-x-4">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div>
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24 mt-1" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-3 w-20 mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export default LoanDetails

@@ -42,6 +42,7 @@ import {
   export const initiateMpesaPayment = (paymentData) => async (dispatch) => {
     try {
       dispatch({ type: MPESA_PAYMENT_REQUEST });
+      console.log('Actions Payment Data:', paymentData); // Log the payment data
   
       const { data } = await api.mpesaPayment(paymentData);
   

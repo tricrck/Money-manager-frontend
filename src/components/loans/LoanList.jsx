@@ -1,33 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Table, Button, Container, Alert, Badge, Card, Row, Col, 
-  Form, Pagination, Spinner, Modal, OverlayTrigger, Tooltip 
-} from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
-import { 
-  FaEdit, FaTrash, FaEye, FaCheck, FaMoneyBillWave, 
-  FaSearch, FaFilter, FaSortAmountDown, FaSortAmountUp,
-  FaExclamationTriangle, FaUserCheck, FaBan, FaCalendarAlt,
-  FaInfoCircle, FaFileInvoiceDollar, FaCreditCard
-} from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
-import { listLoans } from '../../actions/loanActions';
-import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
+import moment from 'moment';
+import { listLoans } from '../../actions/loanActions';
 
-const LoanList = ({ history }) => {
+import { 
+  Building2, Users, Search, Filter, SortAsc, SortDesc, Eye, Edit, Trash2, 
+  Plus, Download, AlertCircle, CheckCircle, Clock, DollarSign, TrendingUp, 
+  MoreHorizontal, Calendar, UserPlus, Shield, Activity, FileText, 
+  CheckSquare, XCircle, PauseCircle, RefreshCw, User, Mail, Phone,
+  CreditCard, Banknote, AlertTriangle, Settings, Archive
+} from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const LoanList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
   const [sortField, setSortField] = useState('applicationDate');
   const [sortDirection, setSortDirection] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedLoanId, setSelectedLoanId] = useState(null);
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [itemsPerPage] = useState(15);
+  const [selectedLoans, setSelectedLoans] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   const loanList = useSelector((state) => state.loanList);
   const { loading, error, loans } = loanList;
@@ -36,591 +44,670 @@ const LoanList = ({ history }) => {
   const { userInfo } = userLogin;
 
   useEffect(() => {
-    if (userInfo) {
+    if (userInfo && userInfo.user.role === 'Admin') {
       dispatch(listLoans());
+    } else if (userInfo && userInfo.user.role !== 'Admin') {
+      navigate('/unauthorized');
     } else {
-      history.push('/login');
+      navigate('/login');
     }
-  }, [dispatch, history, userInfo]);
+  }, [dispatch, navigate, userInfo]);
 
-  // Filter loans based on search term and status filter
+  // Filter and sort loans
   const filteredLoans = loans?.loans?.filter(loan => {
-    const matchesSearch = searchTerm === '' || 
-      (loan.user?.name && loan.user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (loan._id && loan._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (loan.loanType && loan.loanType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (loan.purpose && loan.purpose.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = loan.purpose?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loan.loanType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loan.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loan.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         loan.user?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesFilter = filterStatus === '' || loan.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || loan.status === filterStatus;
+    const matchesType = filterType === 'all' || loan.loanType === filterType;
     
-    return matchesSearch && matchesFilter;
+    // Priority filter based on overdue payments and high amounts
+    let matchesPriority = true;
+    if (filterPriority === 'high') {
+      const overdueCount = getOverdueCount(loan.repaymentSchedule);
+      const isHighAmount = loan.principalAmount > 1000000; // Above 1M KES
+      matchesPriority = overdueCount > 0 || isHighAmount || loan.status === 'defaulted';
+    } else if (filterPriority === 'medium') {
+      const overdueCount = getOverdueCount(loan.repaymentSchedule);
+      matchesPriority = loan.status === 'pending' || (overdueCount === 0 && loan.status === 'active');
+    } else if (filterPriority === 'low') {
+      matchesPriority = loan.status === 'completed' || loan.status === 'approved';
+    }
+    
+    return matchesSearch && matchesStatus && matchesType && matchesPriority;
   }) || [];
 
-  // Sort loans
   const sortedLoans = [...filteredLoans].sort((a, b) => {
-    let comparison = 0;
-    if (sortField === 'principalAmount') {
-      comparison = (a.principalAmount || a.amount || 0) - (b.principalAmount || b.amount || 0);
-    } else if (sortField === 'repaymentPeriod') {
-      comparison = (a.repaymentPeriod || 0) - (b.repaymentPeriod || 0);
-    } else if (sortField === 'interestRate') {
-      comparison = (a.interestRate || 0) - (b.interestRate || 0);
-    } else if (sortField === 'applicationDate') {
-      comparison = new Date(a.applicationDate || a.createdAt) - new Date(b.applicationDate || b.createdAt);
-    } else if (sortField === 'status') {
-      comparison = (a.status || '').localeCompare(b.status || '');
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+    
+    if (sortField === 'applicationDate' || sortField === 'createdAt') {
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
     } else if (sortField === 'user') {
-      comparison = (a.user?.name || '').localeCompare(b.user?.name || '');
+      aVal = a.user?.name || '';
+      bVal = b.user?.name || '';
     }
-    return sortDirection === 'asc' ? comparison : -comparison;
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
   });
 
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentLoans = sortedLoans.slice(indexOfFirstItem, indexOfLastItem);
+  const paginatedLoans = sortedLoans.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const totalPages = Math.ceil(sortedLoans.length / itemsPerPage);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  const deleteHandler = (id) => {
-    setSelectedLoanId(id);
-    setShowDeleteModal(true);
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { variant: 'secondary', icon: Clock, label: 'Pending Review', color: 'bg-yellow-100 text-yellow-800' },
+      approved: { variant: 'default', icon: CheckCircle, label: 'Approved', color: 'bg-blue-100 text-blue-800' },
+      active: { variant: 'default', icon: Activity, label: 'Active', color: 'bg-green-100 text-green-800' },
+      completed: { variant: 'default', icon: CheckCircle, label: 'Completed', color: 'bg-green-100 text-green-800' },
+      rejected: { variant: 'destructive', icon: XCircle, label: 'Rejected', color: 'bg-red-100 text-red-800' },
+      defaulted: { variant: 'destructive', icon: AlertTriangle, label: 'Defaulted', color: 'bg-red-100 text-red-800' },
+      suspended: { variant: 'secondary', icon: PauseCircle, label: 'Suspended', color: 'bg-gray-100 text-gray-800' }
+    };
+    
+    const config = statusConfig[status] || statusConfig.pending;
+    const IconComponent = config.icon;
+    
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <IconComponent className="w-3 h-3" />
+        {config.label}
+      </Badge>
+    );
   };
 
-  const confirmDelete = () => {
-    // Handle the delete action here
-    console.log(`Deleting loan with ID: ${selectedLoanId}`);
-    setShowDeleteModal(false);
+  const getPriorityBadge = (loan) => {
+    const overdueCount = getOverdueCount(loan.repaymentSchedule);
+    const isHighAmount = loan.principalAmount > 1000000;
+    
+    if (overdueCount > 0 || loan.status === 'defaulted' || isHighAmount) {
+      return <Badge variant="destructive" className="text-xs">High Priority</Badge>;
+    } else if (loan.status === 'pending') {
+      return <Badge variant="secondary" className="text-xs">Medium Priority</Badge>;
+    }
+    return null;
   };
 
-  const disburseHandler = (id) => {
-    // Handle the disburse action here
-    console.log(`Disbursing loan with ID: ${id}`);
+  const getLoanTypeIcon = (type) => {
+    return type === 'business' ? <Building2 className="w-4 h-4" /> : <Users className="w-4 h-4" />;
   };
 
-  function EditHandler(loanId) {
-    const navigationUrl = `/loans/${loanId}/edit`;
-    navigate(navigationUrl);
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES'
+    }).format(amount);
+  };
+
+  const getOverdueCount = (repaymentSchedule) => {
+    const today = new Date();
+    return repaymentSchedule?.filter(installment => 
+      !installment.paid && new Date(installment.dueDate) < today
+    ).length || 0;
+  };
+
+  const getNextPaymentDate = (repaymentSchedule) => {
+    const nextPayment = repaymentSchedule?.find(installment => !installment.paid);
+    return nextPayment ? moment(nextPayment.dueDate).format('MMM DD, YYYY') : 'N/A';
+  };
+
+  const handleSelectLoan = (loanId) => {
+    setSelectedLoans(prev => 
+      prev.includes(loanId) 
+        ? prev.filter(id => id !== loanId)
+        : [...prev, loanId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedLoans.length === paginatedLoans.length) {
+      setSelectedLoans([]);
+    } else {
+      setSelectedLoans(paginatedLoans.map(loan => loan._id));
+    }
+  };
+
+  const getStatsData = () => {
+    const stats = {
+      total: loans?.loans?.length || 0,
+      pending: loans?.loans?.filter(loan => loan.status === 'pending').length || 0,
+      active: loans?.loans?.filter(loan => loan.status === 'active').length || 0,
+      defaulted: loans?.loans?.filter(loan => loan.status === 'defaulted').length || 0,
+      totalAmount: loans?.loans?.reduce((sum, loan) => sum + loan.principalAmount, 0) || 0,
+      overdue: loans?.loans?.filter(loan => getOverdueCount(loan.repaymentSchedule) > 0).length || 0
+    };
+    return stats;
+  };
+
+  const stats = getStatsData();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
-  const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const viewLoanDetails = (loan) => {
-    setSelectedLoan(loan);
-    setShowInfoModal(true);
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'pending':
-        return <Badge bg="warning" className="d-flex align-items-center gap-1"><FaExclamationTriangle /> Pending</Badge>;
-      case 'approved':
-        return <Badge bg="success" className="d-flex align-items-center gap-1"><FaUserCheck /> Approved</Badge>;
-      case 'rejected':
-        return <Badge bg="danger" className="d-flex align-items-center gap-1"><FaBan /> Rejected</Badge>;
-      case 'disbursed':
-        return <Badge bg="info" className="d-flex align-items-center gap-1"><FaMoneyBillWave /> Disbursed</Badge>;
-      case 'repaid':
-        return <Badge bg="primary" className="d-flex align-items-center gap-1"><FaCheck /> Repaid</Badge>;
-      case 'defaulted':
-        return <Badge bg="danger" className="d-flex align-items-center gap-1"><FaExclamationTriangle /> Defaulted</Badge>;
-      default:
-        return <Badge bg="secondary">{status}</Badge>;
-    }
-  };
-
-  const getLoanAmount = (loan) => {
-    return loan.principalAmount || loan.amount || 0;
-  };
-
-  // Format date to readable format
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return moment(dateString).format('MMM DD, YYYY');
-  };
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <Container fluid className="py-3">
-      <Card className="shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <h3 className="mb-0 d-flex align-items-center">
-            <FaFileInvoiceDollar className="me-2" /> Loan Management
-          </h3>
-        </Card.Header>
-        <Card.Body>
-          {/* Search and Filter Controls */}
-          <Row className="mb-3">
-            <Col md={4}>
-              <Form.Group className="mb-0">
-                <div className="input-group">
-                  <span className="input-group-text"><FaSearch /></span>
-                  <Form.Control
-                    type="text"
-                    placeholder="Search by ID, name, or loan type..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </Form.Group>
-            </Col>
-            <Col md={3}>
-              <Form.Group className="mb-0">
-                <div className="input-group">
-                  <span className="input-group-text"><FaFilter /></span>
-                  <Form.Select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="disbursed">Disbursed</option>
-                    <option value="repaid">Repaid</option>
-                    <option value="defaulted">Defaulted</option>
-                  </Form.Select>
-                </div>
-              </Form.Group>
-            </Col>
-            <Col md={5} className="text-end">
-              <LinkContainer to="/loans/create">
-                <Button variant="success">
-                  <FaCreditCard className="me-1" /> New Loan Application
-                </Button>
-              </LinkContainer>
-            </Col>
-          </Row>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Loan Management</h1>
+          <p className="text-gray-600 mt-1">Monitor and manage all loan applications</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/admin/reports')}>
+            <FileText className="w-4 h-4 mr-2" />
+            Generate Report
+          </Button>
+          <Button onClick={() => navigate('/admin/loan-settings')}>
+            <Settings className="w-4 h-4 mr-2" />
+            Loan Settings
+          </Button>
+        </div>
+      </div>
 
-          {loading ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Loading loan data...</p>
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Loans</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-blue-600" />
             </div>
-          ) : error ? (
-            <Alert variant="danger">{error}</Alert>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Review</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Loans</p>
+                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+              </div>
+              <Activity className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Defaulted</p>
+                <p className="text-2xl font-bold text-red-600">{stats.defaulted}</p>
+              </div>
+              <XCircle className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Value</p>
+                <p className="text-lg font-bold">{formatCurrency(stats.totalAmount)}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by borrower name, email, purpose, or loan type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending Review</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="defaulted">Defaulted</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="personal">Personal</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Priority Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="high">High Priority</SelectItem>
+                <SelectItem value="medium">Medium Priority</SelectItem>
+                <SelectItem value="low">Low Priority</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={`${sortField}-${sortDirection}`} onValueChange={(value) => {
+              const [field, direction] = value.split('-');
+              setSortField(field);
+              setSortDirection(direction);
+            }}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="applicationDate-desc">Newest First</SelectItem>
+                <SelectItem value="applicationDate-asc">Oldest First</SelectItem>
+                <SelectItem value="principalAmount-desc">Highest Amount</SelectItem>
+                <SelectItem value="principalAmount-asc">Lowest Amount</SelectItem>
+                <SelectItem value="user-asc">Borrower A-Z</SelectItem>
+                <SelectItem value="user-desc">Borrower Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bulk Actions */}
+      {selectedLoans.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-blue-600" />
+                <span className="font-medium">{selectedLoans.length} loans selected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve Selected
+                </Button>
+                <Button size="sm" variant="outline">
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject Selected
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Selected
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedLoans([])}>
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loans Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Loan Applications ({sortedLoans.length})
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowBulkActions(!showBulkActions)}>
+                <CheckSquare className="w-4 h-4 mr-2" />
+                Bulk Actions
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sortedLoans.length === 0 ? (
+            <div className="text-center py-12">
+              <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-semibold text-gray-900">No loans found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm || filterStatus !== 'all' || filterType !== 'all' 
+                  ? 'Try adjusting your search or filters'
+                  : 'No loan applications available'
+                }
+              </p>
+            </div>
           ) : (
             <>
-              {filteredLoans.length === 0 ? (
-                <Alert variant="info">No loans match your search criteria.</Alert>
-              ) : (
-                <>
-                  <div className="table-responsive">
-                    <Table hover bordered className="align-middle">
-                      <thead className="bg-light">
-                        <tr>
-                          <th onClick={() => toggleSort('user')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              APPLICANT
-                              {sortField === 'user' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={selectedLoans.length === paginatedLoans.length && paginatedLoans.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>Borrower</TableHead>
+                    <TableHead>Loan Details</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Next Payment</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead>Applied Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedLoans.map((loan) => {
+                    const overdueCount = getOverdueCount(loan.repaymentSchedule);
+                    const paidInstallments = loan.repaymentSchedule?.filter(inst => inst.paid).length || 0;
+                    const totalInstallments = loan.repaymentSchedule?.length || 0;
+                    const progressPercentage = totalInstallments > 0 ? (paidInstallments / totalInstallments) * 100 : 0;
+                    
+                    return (
+                      <TableRow key={loan._id} className={selectedLoans.includes(loan._id) ? 'bg-blue-50' : ''}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedLoans.includes(loan._id)}
+                            onCheckedChange={() => handleSelectLoan(loan._id)}
+                          />
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                              <User className="w-4 h-4 text-gray-600" />
                             </div>
-                          </th>
-                          <th onClick={() => toggleSort('loanType')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              TYPE
-                              {sortField === 'loanType' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th onClick={() => toggleSort('principalAmount')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              AMOUNT
-                              {sortField === 'principalAmount' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th onClick={() => toggleSort('repaymentPeriod')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              PERIOD
-                              {sortField === 'repaymentPeriod' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th onClick={() => toggleSort('interestRate')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              INTEREST
-                              {sortField === 'interestRate' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th onClick={() => toggleSort('applicationDate')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              APPLICATION DATE
-                              {sortField === 'applicationDate' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th onClick={() => toggleSort('status')} className="cursor-pointer">
-                            <div className="d-flex justify-content-between align-items-center">
-                              STATUS
-                              {sortField === 'status' && (
-                                sortDirection === 'asc' ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />
-                              )}
-                            </div>
-                          </th>
-                          <th>ACTIONS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentLoans.map((loan) => (
-                          <tr key={loan._id}>
-                            <td>
-                              {loan.user ? (
-                                <div className="d-flex flex-column">
-                                  <span className="fw-bold">{loan.user.name}</span>
-                                  <small className="text-muted">{loan.user.email}</small>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {loan.user?.name || 'Unknown User'}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {loan.user?.email}
+                              </div>
+                              {loan.user?.phone && (
+                                <div className="text-xs text-gray-400">
+                                  {loan.user.phone}
                                 </div>
-                              ) : (
-                                <span className="text-muted">Not assigned</span>
                               )}
-                            </td>
-                            <td>
-                              <Badge bg={loan.loanType === 'business' ? 'primary' : 'secondary'} className="text-capitalize">
-                                {loan.loanType || 'N/A'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
+                              {getLoanTypeIcon(loan.loanType)}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {loan.purpose}
+                              </div>
+                              <div className="text-sm text-gray-500 capitalize">
+                                {loan.loanType} loan • {loan.repaymentPeriod} months
+                              </div>
+                              {loan.interestRate && (
+                                <div className="text-xs text-gray-400">
+                                  {loan.interestRate}% {loan.interestType?.replace('_', ' ')} interest
+                                </div>
+                              )}
+                              {getPriorityBadge(loan)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {formatCurrency(loan.principalAmount)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Total: {formatCurrency(loan.totalRepayableAmount)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="space-y-1">
+                            {getStatusBadge(loan.status)}
+                            {overdueCount > 0 && (
+                              <Badge variant="destructive" className="text-xs">
+                                {overdueCount} Overdue
                               </Badge>
-                              {loan.purpose && (
-                                <small className="d-block text-muted mt-1">{loan.purpose}</small>
-                              )}
-                            </td>
-                            <td className="text-end fw-bold">
-                              ${getLoanAmount(loan).toLocaleString()}
-                              {loan.interestType && (
-                                <small className="d-block text-muted">
-                                  {loan.interestType === 'reducing_balance' ? 'Reducing Balance' : 'Simple Interest'}
-                                </small>
-                              )}
-                            </td>
-                            <td className="text-center">
-                              {loan.repaymentPeriod} {loan.repaymentPeriod === 1 ? 'month' : 'months'}
-                            </td>
-                            <td className="text-center">
-                              {loan.interestRate}%
-                            </td>
-                            <td>
-                              <div className="d-flex align-items-center">
-                                <FaCalendarAlt className="text-muted me-1" size={14} />
-                                {formatDate(loan.applicationDate)}
+                            )}
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {getNextPaymentDate(loan.repaymentSchedule)}
+                            </div>
+                            {loan.repaymentSchedule && (
+                              <div className="text-gray-500">
+                                {formatCurrency(loan.repaymentSchedule.find(inst => !inst.paid)?.totalAmount || 0)}
                               </div>
-                            </td>
-                            <td>{getStatusBadge(loan.status)}</td>
-                            <td>
-                              <div className="d-flex gap-1">
-                                <OverlayTrigger placement="top" overlay={<Tooltip>View Details</Tooltip>}>
-                                  <Button 
-                                    variant="info" 
-                                    size="sm" 
-                                    onClick={() => viewLoanDetails(loan)}
-                                  >
-                                    <FaEye />
-                                  </Button>
-                                </OverlayTrigger>
-                                
-                                  <OverlayTrigger placement="top" overlay={<Tooltip>Edit Loan</Tooltip>}>
-                                    <Button 
-                                    variant="primary" 
-                                    size="sm"
-                                    onClick={() => EditHandler(loan._id)}>
-                                      <FaEdit />
-                                    </Button>
-                                  </OverlayTrigger>
-                                
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Delete Loan</Tooltip>}>
-                                  <Button
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={() => deleteHandler(loan._id)}
-                                  >
-                                    <FaTrash />
-                                  </Button>
-                                </OverlayTrigger>
-                                
-                                {loan.status === 'approved' && (
-                                  <OverlayTrigger placement="top" overlay={<Tooltip>Disburse Loan</Tooltip>}>
-                                    <Button
-                                      variant="success"
-                                      size="sm"
-                                      onClick={() => disburseHandler(loan._id)}
-                                    >
-                                      <FaMoneyBillWave />
-                                    </Button>
-                                  </OverlayTrigger>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">
+                              {paidInstallments}/{totalInstallments} payments
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all"
+                                style={{ width: `${progressPercentage}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {Math.round(progressPercentage)}% complete
+                            </div>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="text-sm">
+                            {moment(loan.applicationDate).format('MMM DD, YYYY')}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {moment(loan.applicationDate).fromNow()}
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel>Loan Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => navigate(`/admin/loan/${loan._id}`)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Full Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/admin/user/${loan.user?._id}`)}>
+                                <User className="mr-2 h-4 w-4" />
+                                View Borrower Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              
+                              {loan.status === 'pending' && (
+                                <>
+                                  <DropdownMenuItem className="text-green-600">
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Approve Loan
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600">
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Reject Loan
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              
+                              {loan.status === 'active' && (
+                                <>
+                                  <DropdownMenuItem>
+                                    <PauseCircle className="mr-2 h-4 w-4" />
+                                    Suspend Loan
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Restructure Loan
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              
+                              <DropdownMenuItem onClick={() => navigate(`/admin/loan-statement/${loan._id}`)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Statement
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/admin/loan-history/${loan._id}`)}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                View History
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600">
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive Loan
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-between align-items-center mt-3">
-                      <div>
-                        Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedLoans.length)} of {sortedLoans.length} loans
-                      </div>
-                      <Pagination>
-                        <Pagination.First
-                          onClick={() => paginate(1)}
-                          disabled={currentPage === 1}
-                        />
-                        <Pagination.Prev
-                          onClick={() => paginate(currentPage - 1)}
-                          disabled={currentPage === 1}
-                        />
-                        
-                        {[...Array(totalPages).keys()].map(number => (
-                          <Pagination.Item
-                            key={number + 1}
-                            active={number + 1 === currentPage}
-                            onClick={() => paginate(number + 1)}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 py-4">
+                  <div className="text-sm text-gray-700">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                    {Math.min(currentPage * itemsPerPage, sortedLoans.length)} of{' '}
+                    {sortedLoans.length} results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                        let page;
+                        if (totalPages <= 7) {
+                          page = i + 1;
+                        } else if (currentPage <= 4) {
+                          page = i + 1;
+                        } else if (currentPage >= totalPages - 3) {
+                          page = totalPages - 6 + i;
+                        } else {
+                          page = currentPage - 3 + i;
+                        }
+                        return (
+                          <Button
+                            key={page}
+                            size="sm"
+                            variant={page === currentPage ? 'default' : 'outline'}
+                            onClick={() => setCurrentPage(page)}
                           >
-                            {number + 1}
-                          </Pagination.Item>
-                        ))}
-                        
-                        <Pagination.Next
-                          onClick={() => paginate(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                        />
-                        <Pagination.Last
-                          onClick={() => paginate(totalPages)}
-                          disabled={currentPage === totalPages}
-                        />
-                      </Pagination>
+                            {page}
+                          </Button>
+                        );
+                      })}
                     </div>
-                  )}
-                </>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               )}
             </>
           )}
-        </Card.Body>
+        </CardContent>
       </Card>
-
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete this loan? This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmDelete}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Loan Details Modal */}
-      <Modal 
-        show={showInfoModal} 
-        onHide={() => setShowInfoModal(false)} 
-        size="lg"
-      >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <FaInfoCircle className="me-2" />
-            Loan Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedLoan && (
-            <Row>
-              <Col md={6}>
-                <h5>Basic Information</h5>
-                <Table bordered hover size="sm" className="mb-4">
-                  <tbody>
-                    <tr>
-                      <td className="fw-bold">Loan ID</td>
-                      <td>{selectedLoan._id}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Applicant</td>
-                      <td>{selectedLoan.user ? selectedLoan.user.name : 'Not assigned'}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Group</td>
-                      <td>{selectedLoan.group ? selectedLoan.group.name : 'N/A'}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Loan Type</td>
-                      <td className="text-capitalize">{selectedLoan.loanType || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Purpose</td>
-                      <td>{selectedLoan.purpose || 'Not specified'}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Status</td>
-                      <td>{getStatusBadge(selectedLoan.status)}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Application Date</td>
-                      <td>{formatDate(selectedLoan.applicationDate)}</td>
-                    </tr>
-                    {selectedLoan.disbursementDate && (
-                      <tr>
-                        <td className="fw-bold">Disbursement Date</td>
-                        <td>{formatDate(selectedLoan.disbursementDate)}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </Table>
-                  
-                <h5>Financial Details</h5>
-                <Table bordered hover size="sm">
-                  <tbody>
-                    <tr>
-                      <td className="fw-bold">Principal Amount</td>
-                      <td>${getLoanAmount(selectedLoan).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Interest Rate</td>
-                      <td>{selectedLoan.interestRate}%</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Interest Type</td>
-                      <td>
-                        {selectedLoan.interestType === 'reducing_balance' 
-                          ? 'Reducing Balance' 
-                          : selectedLoan.interestType === 'simple' 
-                            ? 'Simple Interest' 
-                            : 'N/A'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Repayment Period</td>
-                      <td>{selectedLoan.repaymentPeriod} months</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Total Repayable</td>
-                      <td>${(selectedLoan.totalRepayableAmount || 0).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Amount Repaid</td>
-                      <td>${(selectedLoan.amountRepaid || 0).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold">Processing Fee</td>
-                      <td>${(selectedLoan.processingFee || 0).toLocaleString()}</td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </Col>
-              <Col md={6}>
-                <h5>Collateral Information</h5>
-                {selectedLoan.collateral && selectedLoan.collateral.value ? (
-                  <Table bordered hover size="sm" className="mb-4">
-                    <tbody>
-                      <tr>
-                        <td className="fw-bold">Description</td>
-                        <td>{selectedLoan.collateral.description || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="fw-bold">Value</td>
-                        <td>${(selectedLoan.collateral.value || 0).toLocaleString()}</td>
-                      </tr>
-                      <tr>
-                        <td className="fw-bold">Documents</td>
-                        <td>
-                          {selectedLoan.collateral.documents && selectedLoan.collateral.documents.length > 0 ? (
-                            <ul className="mb-0 ps-3">
-                              {selectedLoan.collateral.documents.map((doc, idx) => (
-                                <li key={idx}><a href={doc} target="_blank" rel="noreferrer">Document {idx + 1}</a></li>
-                              ))}
-                            </ul>
-                          ) : 'No documents attached'}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </Table>
-                ) : (
-                  <Alert variant="info" className="mb-4">No collateral information available</Alert>
-                )}
-
-                <h5>Repayment Schedule</h5>
-                {selectedLoan.repaymentSchedule && selectedLoan.repaymentSchedule.length > 0 ? (
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    <Table bordered hover size="sm">
-                      <thead className="bg-light">
-                        <tr>
-                          <th>#</th>
-                          <th>Due Date</th>
-                          <th>Amount</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedLoan.repaymentSchedule.map((installment) => (
-                          <tr key={installment._id}>
-                            <td>{installment.installmentNumber}</td>
-                            <td>{formatDate(installment.dueDate)}</td>
-                            <td>${installment.totalAmount.toLocaleString()}</td>
-                            <td>
-                              {installment.paid ? (
-                                <Badge bg="success">Paid</Badge>
-                              ) : new Date(installment.dueDate) < new Date() ? (
-                                <Badge bg="danger">Overdue</Badge>
-                              ) : (
-                                <Badge bg="warning">Pending</Badge>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                ) : (
-                  <Alert variant="info">No repayment schedule available</Alert>
-                )}
-
-                {selectedLoan.notes && selectedLoan.notes.length > 0 && (
-                  <>
-                    <h5 className="mt-3">Notes & History</h5>
-                    <div className="p-2 border rounded" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                      {selectedLoan.notes.map((note, idx) => (
-                        <div key={idx} className="mb-2 pb-2 border-bottom">
-                          <div className="text-muted small">{formatDate(note.date)}</div>
-                          <div>{note.text}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </Col>
-            </Row>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowInfoModal(false)}>
-            Close
-          </Button>
-          <LinkContainer to={`/loans/${selectedLoan?._id}/edit`}>
-            <Button variant="primary">
-              <FaEdit className="me-1" /> Edit Loan
-            </Button>
-          </LinkContainer>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+    </div>
   );
 };
 

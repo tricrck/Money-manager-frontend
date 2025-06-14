@@ -1,511 +1,179 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Card, Row, Col, Button, Alert, Form, ProgressBar, Spinner, Toast, ToastContainer } from 'react-bootstrap';
-import { useDispatch, useSelector } from 'react-redux';
-import { getWalletDetails } from '../../actions/walletActions';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import { 
-  FaArrowLeft, FaMobileAlt, FaCreditCard, FaCheckCircle, 
-  FaUniversity, FaMoneyBillWave, FaLock, FaCoins, FaWallet,
-  FaHistory, FaChevronRight, FaExclamationTriangle, FaInfoCircle
-} from 'react-icons/fa';
+  ArrowUpCircle,
+  Smartphone,
+  Banknote,
+  ChevronRight
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
+import { formatCurrency } from '@/lib/utils'
 
-const WithdrawForm = () => {
-  const params = useParams();
-  const navigate = useNavigate();
-  const userId = params.userId;
-  
-  const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [isValidAmount, setIsValidAmount] = useState(false);
-  const [step, setStep] = useState(1);
-  const [showToast, setShowToast] = useState(false);
-  const [withdrawalFee, setWithdrawalFee] = useState(0);
-  const [recentWithdrawals, setRecentWithdrawals] = useState([
-    { id: 1, date: '2025-04-07', amount: 1500, method: 'mpesa', status: 'completed' },
-    { id: 2, date: '2025-03-28', amount: 3000, method: 'stripe', status: 'completed' }
-  ]); // Demo data - would be fetched from API
+// Import child components
+import MpesaWithdrawal from '../payments/MpesaWithdrawal'
+import StripePayout from '../payments/StripePayout'
+import { resetPaymentState } from '../../actions/paymentActions'
+import { getWalletDetails } from '../../actions/walletActions'
 
-  const dispatch = useDispatch();
+const WithdrawForm = ({ userId }) => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-  const walletDetails = useSelector((state) => state.walletDetails);
-  const { wallet, loading: walletLoading, error: walletError } = walletDetails;
+  // State
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [amount, setAmount] = useState('')
+  const [isValidAmount, setIsValidAmount] = useState(false)
+  const [showModal, setShowModal] = useState(false)
 
-  const userLogin = useSelector((state) => state.userLogin);
-  const { userInfo } = userLogin;
+  // Redux selectors
+  const walletDetails = useSelector((state) => state.walletDetails)
+  const { wallet, loading: walletLoading, error: walletError } = walletDetails
 
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
+
+  // Validate amount
   useEffect(() => {
-    if (!userInfo) {
-      dispatch(getWalletDetails(userInfo.user._id));
-    }
-  }, [dispatch, userInfo]);
+    const num = parseFloat(amount)
+    setIsValidAmount(num > 0 && !isNaN(num) && num <= (wallet?.balance || 0))
+  }, [amount, wallet?.balance])
 
-  useEffect(() => {
-    validateAmount(amount);
-  }, [amount, wallet]);
-
-  // Calculate withdrawal fee based on method (for demonstration)
-  useEffect(() => {
-    if (paymentMethod === 'mpesa') {
-      setWithdrawalFee(parseFloat(amount) * 0.01); // 1% fee
-    } else if (paymentMethod === 'stripe') {
-      setWithdrawalFee(2.5); // $2.50 flat fee
-    } else if (paymentMethod === 'bank') {
-      setWithdrawalFee(3); // $3 flat fee
-    } else {
-      setWithdrawalFee(0);
-    }
-  }, [paymentMethod, amount]);
-
-  const validateAmount = (value) => {
-    const numValue = parseFloat(value);
-    const maxAmount = wallet?.balance || 0;
-    
-    setIsValidAmount(
-      numValue > 0 && 
-      !isNaN(numValue) && 
-      numValue <= maxAmount
-    );
-  };
-
-  const handleAmountChange = (e) => {
-    const value = e.target.value;
-    // Only allow numbers and a single decimal point
-    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
-      setAmount(value);
-    }
-  };
-
-  const handlePaymentSelection = (method) => {
-    setPaymentMethod(method);
-    // Automatically move to next step after small delay for better UX
-    setTimeout(() => setStep(3), 300);
-  };
-
-  const goToNextStep = () => {
-    if (step === 1 && isValidAmount) {
-      setStep(2);
-    }
-  };
-
-  const goToPreviousStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
-
-  const proceedToWithdrawal = () => {
-    if (!isValidAmount || !paymentMethod) {
-      return;
-    }
-    
-    setShowToast(true);
-    
-    // Simulate loading and then redirect
-    setTimeout(() => {
-      if (paymentMethod === 'mpesa') {
-        navigate(`/payment/mpesawithdraw?amount=${amount}`);
-      } else if (paymentMethod === 'stripe') {
-        navigate(`/payment/stripe/payout?amount=${amount}`);
-      } else if (paymentMethod === 'bank') {
-        navigate(`/payment/bank/withdraw?amount=${amount}`);
-      }
-    }, 1500);
-  };
-
-  const getPaymentMethodIcon = (method) => {
-    switch(method) {
-      case 'mpesa': return <FaMobileAlt className="text-success" />;
-      case 'stripe': return <FaCreditCard className="text-primary" />;
-      case 'bank': return <FaUniversity className="text-info" />;
-      default: return <FaMoneyBillWave />;
-    }
-  };
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  };
-
-  const renderStepIndicator = () => (
-    <div className="d-flex justify-content-center mb-4">
-      <ProgressBar className="w-75">
-        <ProgressBar 
-          variant={step >= 1 ? "success" : "secondary"} 
-          now={step >= 1 ? 33.3 : 0} 
-          key={1} 
-        />
-        <ProgressBar 
-          variant={step >= 2 ? "success" : "secondary"} 
-          now={step >= 2 ? 33.3 : 0} 
-          key={2} 
-        />
-        <ProgressBar 
-          variant={step >= 3 ? "success" : "secondary"} 
-          now={step >= 3 ? 33.4 : 0} 
-          key={3} 
-        />
-      </ProgressBar>
-    </div>
-  );
-
-  const renderAmountPresets = () => {
-    if (!wallet?.balance) return null;
-    
-    // Calculate preset values based on available balance
-    const maxBalance = wallet.balance;
-    const presets = [
-      Math.round(maxBalance * 0.25),
-      Math.round(maxBalance * 0.5),
-      Math.round(maxBalance * 0.75),
-      maxBalance
-    ].filter(val => val > 0);
-    
-    return (
-      <div className="d-flex flex-wrap gap-2 mb-3">
-        {presets.map((preset) => (
-          <Button
-            key={preset}
-            variant={amount === preset.toString() ? "primary" : "outline-primary"}
-            className="rounded-pill"
-            onClick={() => setAmount(preset.toString())}
-          >
-            {preset === maxBalance ? 'Max' : formatCurrency(preset)}
-          </Button>
-        ))}
-      </div>
-    );
-  };
-
-  if (walletLoading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </Container>
-    );
+  // Handle amount input
+  const handleAmountChange = e => {
+    const val = e.target.value
+    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) setAmount(val)
   }
 
+  // Open modal on submit
+  const handleSubmit = e => {
+    e.preventDefault()
+    if (!isValidAmount || !paymentMethod) return
+    setShowModal(true)
+  }
+
+  // Close modal and reset state on terminal
+  const handleClose = () => {
+    setShowModal(false)
+    dispatch(resetPaymentState())
+    // refresh wallet
+    dispatch(getWalletDetails(userInfo?.user?._id || userId))
+    setAmount('')
+    setPaymentMethod('')
+  }
+
+  // Render payment component
+  const renderPaymentComponent = () => {
+    switch (paymentMethod) {
+      case 'mpesa':
+        return <MpesaWithdrawal amount={parseFloat(amount)} userId={userId} onClose={handleClose} />
+      case 'stripe':
+        return <StripePayout amount1={parseFloat(amount)} userId={userId} onClose={handleClose} />
+      default:
+        return null
+    }
+  }
+
+  // Recent withdrawals
+  const recent = wallet?.transactions
+    ?.filter(tx => tx.type === 'withdrawal' && (paymentMethod === '' || tx.paymentMethod.toLowerCase().includes(paymentMethod)))
+    .sort((a, b) => new Date(b.date) - new Date(a.date)) || []
+
+  const paymentMethods = [
+    { id: 'mpesa', name: 'M-Pesa', icon: Smartphone },
+    { id: 'stripe', name: 'Bank Transfer', icon: Banknote }
+  ]
+
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <Link to={`/wallet/${userId}`} className="btn btn-outline-secondary rounded-circle">
-          <FaArrowLeft />
-        </Link>
-        <h2 className="mb-0">Withdraw Funds</h2>
-        <div className="w-40px"></div> {/* For balanced layout */}
-      </div>
-
-      {walletError && <Alert variant="danger">{walletError}</Alert>}
-      
-      {renderStepIndicator()}
-      
-      {/* Step 1: Amount Entry */}
-      <Card 
-        className={`mb-4 shadow-sm border-0 ${step === 1 ? 'd-block' : 'd-none'}`}
-        style={{ borderRadius: '1rem' }}
-      >
-        <Card.Body className="p-4">
-          <Card.Title className="d-flex align-items-center mb-4">
-            <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style={{ width: '32px', height: '32px' }}>1</div>
-            <span>Enter Amount</span>
-          </Card.Title>
-          
-          {wallet && (
-            <div className="bg-light p-3 rounded d-flex align-items-center mb-4">
-              <FaWallet className="text-primary me-3" size={24} />
-              <div>
-                <div className="text-muted small">Available Balance</div>
-                <div className="fw-bold fs-4">{formatCurrency(wallet.balance || 0)}</div>
-              </div>
-            </div>
-          )}
-          
-          <Form.Group className="mb-4">
-            <Form.Label className="fw-bold">How much would you like to withdraw?</Form.Label>
-            <div className="input-group mb-3">
-              <span className="input-group-text">$</span>
-              <Form.Control
-                type="text"
-                value={amount}
-                onChange={handleAmountChange}
-                placeholder="0.00"
-                className="form-control-lg text-end"
-                style={{ fontSize: '1.5rem' }}
-                isInvalid={amount !== '' && !isValidAmount}
-              />
-            </div>
-            {amount !== '' && !isValidAmount && (
-              <Form.Text className="text-danger">
-                {parseFloat(amount) <= 0 ? 
-                  'Please enter a valid amount greater than 0' : 
-                  `Amount exceeds your available balance of ${formatCurrency(wallet?.balance || 0)}`
-                }
-              </Form.Text>
+    <>
+      <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount</Label>
+            <Input
+              id="amount"
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={handleAmountChange}
+              placeholder="Enter amount"
+              className={!isValidAmount && amount ? 'border-red-500' : ''}
+            />
+            {!isValidAmount && amount && (
+              <p className="text-sm text-red-500">
+                {parseFloat(amount) > (wallet?.balance||0)
+                  ? 'Amount exceeds available balance'
+                  : 'Please enter a valid amount'}
+              </p>
             )}
-          </Form.Group>
-          
-          <div className="mb-4">
-            <Form.Label className="fw-bold">Quick Select</Form.Label>
-            {renderAmountPresets()}
+            <p className="text-sm text-muted-foreground">
+              Available balance: {formatCurrency(wallet?.balance||0, wallet?.currency)}
+            </p>
           </div>
-          
-          <div className="d-grid">
-            <Button 
-              variant="primary" 
-              size="lg"
-              disabled={!isValidAmount}
-              onClick={goToNextStep}
-              className="py-3"
-              style={{ borderRadius: '0.8rem' }}
-            >
-              Continue <FaChevronRight className="ms-2" />
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
 
-      {/* Step 2: Payment Method Selection */}
-      <Card 
-        className={`mb-4 shadow-sm border-0 ${step === 2 ? 'd-block' : 'd-none'}`}
-        style={{ borderRadius: '1rem' }}
-      >
-        <Card.Body className="p-4">
-          <Card.Title className="d-flex align-items-center mb-4">
-            <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style={{ width: '32px', height: '32px' }}>2</div>
-            <span>Select Withdrawal Method</span>
-          </Card.Title>
-
-          <div className="mb-4">
-            <div className="alert alert-info d-flex align-items-center">
-              <FaCoins className="me-2" />
-              <div>Withdrawing: <strong>{formatCurrency(parseFloat(amount) || 0)}</strong></div>
-            </div>
-          </div>
-          
-          <Row className="g-3">
-            <Col xs={12} md={4}>
-              <Card 
-                className={`h-100 border-0 shadow-sm ${paymentMethod === 'mpesa' ? 'border-primary bg-light' : ''}`}
-                onClick={() => handlePaymentSelection('mpesa')}
-                style={{ cursor: 'pointer', borderRadius: '0.8rem', transition: 'all 0.2s ease' }}
-              >
-                <Card.Body className="p-3 d-flex flex-column align-items-center text-center">
-                  <div className={`rounded-circle d-flex justify-content-center align-items-center mb-3 ${paymentMethod === 'mpesa' ? 'bg-success' : 'bg-light'}`} 
-                       style={{ width: '60px', height: '60px', transition: 'all 0.2s ease' }}>
-                    <FaMobileAlt size={28} className={paymentMethod === 'mpesa' ? 'text-white' : 'text-success'} />
-                  </div>
-                  <h5>M-Pesa</h5>
-                  <p className="text-muted small mb-0">Withdraw to mobile wallet</p>
-                  {paymentMethod === 'mpesa' && (
-                    <div className="mt-2">
-                      <FaCheckCircle className="text-success" />
-                    </div>
-                  )}
-                  <div className="mt-2 small text-danger">1% fee</div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col xs={12} md={4}>
-              <Card 
-                className={`h-100 border-0 shadow-sm ${paymentMethod === 'stripe' ? 'border-primary bg-light' : ''}`}
-                onClick={() => handlePaymentSelection('stripe')}
-                style={{ cursor: 'pointer', borderRadius: '0.8rem', transition: 'all 0.2s ease' }}
-              >
-                <Card.Body className="p-3 d-flex flex-column align-items-center text-center">
-                  <div className={`rounded-circle d-flex justify-content-center align-items-center mb-3 ${paymentMethod === 'stripe' ? 'bg-primary' : 'bg-light'}`} 
-                       style={{ width: '60px', height: '60px', transition: 'all 0.2s ease' }}>
-                    <FaCreditCard size={28} className={paymentMethod === 'stripe' ? 'text-white' : 'text-primary'} />
-                  </div>
-                  <h5>Card/Debit Card</h5>
-                  <p className="text-muted small mb-0">Withdraw to linked card</p>
-                  {paymentMethod === 'stripe' && (
-                    <div className="mt-2">
-                      <FaCheckCircle className="text-success" />
-                    </div>
-                  )}
-                  <div className="mt-2 small text-danger">$2.50 fee</div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col xs={12} md={4}>
-              <Card 
-                className={`h-100 border-0 shadow-sm ${paymentMethod === 'bank' ? 'border-primary bg-light' : ''}`}
-                onClick={() => handlePaymentSelection('bank')}
-                style={{ cursor: 'pointer', borderRadius: '0.8rem', transition: 'all 0.2s ease' }}
-              >
-                <Card.Body className="p-3 d-flex flex-column align-items-center text-center">
-                  <div className={`rounded-circle d-flex justify-content-center align-items-center mb-3 ${paymentMethod === 'bank' ? 'bg-info' : 'bg-light'}`} 
-                       style={{ width: '60px', height: '60px', transition: 'all 0.2s ease' }}>
-                    <FaUniversity size={28} className={paymentMethod === 'bank' ? 'text-white' : 'text-info'} />
-                  </div>
-                  <h5>Cash Request</h5>
-                  <p className="text-muted small mb-0">Group Treasure direct withdrawal</p>
-                  {paymentMethod === 'bank' && (
-                    <div className="mt-2">
-                      <FaCheckCircle className="text-success" />
-                    </div>
-                  )}
-                  <div className="mt-2 small text-danger">$3.00 fee</div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-          
-          <div className="alert alert-warning mt-4 d-flex">
-            <FaExclamationTriangle className="me-2 mt-1" />
-            <div className="small">
-              Withdrawal processing times may vary by location of your Treasurer. Bank transfers typically take 1-2 business days, card withdrawals 24-48 hours, and M-Pesa within minutes.
-            </div>
-          </div>
-          
-          <div className="d-flex justify-content-between mt-4">
-            <Button 
-              variant="outline-secondary" 
-              onClick={goToPreviousStep}
-              className="px-4"
-            >
-              Back
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
-      
-      {/* Step 3: Confirmation */}
-      <Card 
-        className={`mb-4 shadow-sm border-0 ${step === 3 ? 'd-block' : 'd-none'}`}
-        style={{ borderRadius: '1rem' }}
-      >
-        <Card.Body className="p-4">
-          <Card.Title className="d-flex align-items-center mb-4">
-            <div className="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style={{ width: '32px', height: '32px' }}>3</div>
-            <span>Confirm Withdrawal</span>
-          </Card.Title>
-          
-          <div className="bg-light p-4 rounded mb-4">
-            <Row className="mb-3">
-              <Col xs={6}>
-                <div className="text-muted small">Withdrawal Amount</div>
-                <div className="fw-bold fs-4">{formatCurrency(parseFloat(amount) || 0)}</div>
-              </Col>
-              <Col xs={6}>
-                <div className="text-muted small">Withdrawal Method</div>
-                <div className="d-flex align-items-center">
-                  {getPaymentMethodIcon(paymentMethod)}
-                  <span className="ms-2 fw-bold">
-                    {paymentMethod === 'mpesa' && 'M-Pesa'}
-                    {paymentMethod === 'stripe' && 'Card'}
-                    {paymentMethod === 'bank' && 'Bank Account'}
-                  </span>
+          <div className="space-y-2">
+            <Label>Withdrawal Method</Label>
+            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid gap-4">
+              {paymentMethods.map(method => (
+                <div key={method.id} className="flex items-center space-x-3">
+                  <RadioGroupItem value={method.id} id={method.id} />
+                  <Label htmlFor={method.id} className="flex items-center cursor-pointer">
+                    <method.icon className="mr-2 h-5 w-5" />
+                    {method.name}
+                  </Label>
                 </div>
-              </Col>
-            </Row>
-            
-            <Row>
-              <Col xs={6}>
-                <div className="text-muted small">Withdrawal Fee</div>
-                <div className="fw-bold text-danger">-{formatCurrency(withdrawalFee || 0)}</div>
-              </Col>
-              <Col xs={6}>
-                <div className="text-muted small">You'll Receive</div>
-                <div className="fw-bold text-success">{formatCurrency((parseFloat(amount) || 0) - withdrawalFee)}</div>
-              </Col>
-            </Row>
+              ))}
+            </RadioGroup>
           </div>
-          
-          <div className="alert alert-info d-flex mb-4">
-            <FaInfoCircle className="me-3 mt-1" />
-            <div className="small">
-              Please ensure your withdrawal details are correct. After confirming, you'll need to verify this transaction through the selected payment method.
-            </div>
-          </div>
-          
-          <div className="d-flex flex-column flex-md-row justify-content-between gap-3">
-            <Button 
-              variant="outline-secondary" 
-              onClick={goToPreviousStep}
-              className="px-4 order-2 order-md-1"
-            >
-              Back
-            </Button>
-            <Button 
-              variant="primary" 
-              size="lg"
-              onClick={proceedToWithdrawal}
-              className="py-3 px-5 order-1 order-md-2"
-              style={{ borderRadius: '0.8rem' }}
-              disabled={!isValidAmount || !paymentMethod}
-            >
-              Confirm Withdrawal
-            </Button>
-          </div>
-        </Card.Body>
-      </Card>
-      
-      {/* Recent Transactions Section */}
-      <Card className="border-0 shadow-sm" style={{ borderRadius: '1rem' }}>
-        <Card.Body className="p-4">
-          <Card.Title className="mb-3">Recent Withdrawals</Card.Title>
-          
-          {recentWithdrawals.length > 0 ? (
-            <div className="recent-transactions">
-              {recentWithdrawals.map(withdrawal => (
-                <div key={withdrawal.id} className="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div className="d-flex align-items-center">
-                    <div className="bg-light rounded-circle p-2 me-3">
-                      {getPaymentMethodIcon(withdrawal.method)}
-                    </div>
+
+          <Button type="submit" className="w-full" disabled={!isValidAmount || !paymentMethod}>
+            Continue <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </form>
+
+        {recent.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Recent Withdrawals</h4>
+            <div className="space-y-2">
+              {recent.slice(0,3).map(tx => (
+                <div key={tx._id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center space-x-3">
+                    <ArrowUpCircle className="h-5 w-5 text-red-500" />
                     <div>
-                      <div className="fw-bold">
-                        {withdrawal.method === 'mpesa' && 'M-Pesa Withdrawal'}
-                        {withdrawal.method === 'stripe' && 'Card Withdrawal'}
-                        {withdrawal.method === 'bank' && 'Bank Withdrawal'}
-                      </div>
-                      <div className="text-muted small">{new Date(withdrawal.date).toLocaleDateString()}</div>
+                      <p className="text-sm font-medium">{tx.paymentMethod}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="text-end">
-                    <div className="fw-bold text-danger">-{formatCurrency(withdrawal.amount)}</div>
-                    <div className="small">
-                      <span className="badge bg-success">Completed</span>
-                    </div>
-                  </div>
+                  <div className="text-sm font-medium">-{formatCurrency(tx.amount, wallet?.currency)}</div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center text-muted py-4">
-              <FaHistory size={32} className="mb-3" />
-              <p>No recent withdrawals found</p>
-            </div>
-          )}
-          
-          <div className="text-center mt-3">
-            <Link to={`/transactions/${userId}`} className="btn btn-light">
-              View All Transactions
-            </Link>
           </div>
-        </Card.Body>
-      </Card>
-      
-      {/* Toast notification */}
-      <ToastContainer position="bottom-center" className="mb-4">
-        <Toast show={showToast} onClose={() => setShowToast(false)} delay={3000} autohide>
-          <Toast.Header closeButton={false}>
-            <strong className="me-auto">Processing Withdrawal</strong>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <Spinner animation="border" size="sm" className="me-2" />
-              <span>Preparing your withdrawal...</span>
-            </div>
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
-    </Container>
-  );
-};
+        )}
+      </div>
 
-export default WithdrawForm;
+      <Dialog open={showModal} onOpenChange={open => setShowModal(open)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Withdrawal - {formatCurrency(parseFloat(amount)||0, wallet?.currency)}</DialogTitle>
+            <DialogDescription>Please complete your withdrawal using the selected method.</DialogDescription>
+          </DialogHeader>
+
+          {renderPaymentComponent()}
+
+          <DialogClose asChild>
+            <Button variant="outline" className="mt-4" onClick={handleClose}>
+              Cancel
+            </Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+export default WithdrawForm

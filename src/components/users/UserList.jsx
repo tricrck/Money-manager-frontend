@@ -1,34 +1,85 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Table, Button, Container, Alert, Spinner, Card, 
-  Badge, InputGroup, FormControl, Row, Col, Modal,
-  Form, Dropdown, OverlayTrigger, Tooltip
-} from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { listUsers, deleteUser } from '../../actions/userActions';
 import { 
-  FaUserCircle, FaTrashAlt, FaPencilAlt, FaSearch,
-  FaSort, FaSortUp, FaSortDown, FaFilter, FaEllipsisV,
-  FaPlus, FaUserPlus, FaEnvelope, FaPhone, FaIdCard, 
-  FaUserTag, FaExclamationTriangle
-} from 'react-icons/fa';
+  Users, 
+  User, 
+  Search, 
+  Filter, 
+  SortAsc, 
+  SortDesc, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Plus, 
+  Download,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Shield,
+  UserCheck,
+  UserX,
+  MoreHorizontal,
+  Calendar,
+  Mail,
+  Phone,
+  MapPin,
+  Activity,
+  CreditCard,
+  Globe
+} from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { 
+  Alert, 
+  AlertDescription 
+} from '@/components/ui/alert';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { listUsers, deleteUser } from '../../actions/userActions';
 
 const UserList = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-  const [filterRole, setFilterRole] = useState('');
+  const navigate = useNavigate();
 
   const userList = useSelector((state) => state.userList);
-  const { loading, error, users } = userList;
+  const { loading, error, users = [] } = userList;
 
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
@@ -36,24 +87,87 @@ const UserList = () => {
   const userDelete = useSelector((state) => state.userDelete);
   const { success: successDelete, loading: deleteLoading } = userDelete;
 
+  // State for filtering and sorting
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterVerified, setFilterVerified] = useState('all');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
   useEffect(() => {
-    if (userInfo && userInfo.user && userInfo.user.role === 'Admin') {
+    if (userInfo?.user?.role === 'Admin') {
       dispatch(listUsers());
     } else {
-      navigate('/login');
+      navigate('/dashboard');
     }
-  }, [dispatch, navigate, successDelete, userInfo]);
+  }, [dispatch, navigate, userInfo, successDelete]);
 
-  const confirmDeleteHandler = () => {
-    dispatch(deleteUser(userToDelete));
-    setShowDeleteModal(false);
-  };
+  // Filter and sort users
+  const processedUsers = users
+    .filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          user.phoneNumber?.includes(searchTerm) ||
+                          user.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = filterRole === 'all' || user.role === filterRole;
+      const matchesStatus = filterStatus === 'all' || 
+                           (filterStatus === 'active' && user.isActive) ||
+                           (filterStatus === 'inactive' && !user.isActive);
+      const matchesVerified = filterVerified === 'all' || 
+                             (filterVerified === 'verified' && user.isVerified) ||
+                             (filterVerified === 'unverified' && !user.isVerified);
+      
+      return matchesSearch && matchesRole && matchesStatus && matchesVerified;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'email':
+          aValue = a.email.toLowerCase();
+          bValue = b.email.toLowerCase();
+          break;
+        case 'role':
+          aValue = a.role.toLowerCase();
+          bValue = b.role.toLowerCase();
+          break;
+        case 'createdAt':
+          aValue = new Date(a.createdAt);
+          bValue = new Date(b.createdAt);
+          break;
+        case 'county':
+          aValue = a.county?.toLowerCase() || '';
+          bValue = b.county?.toLowerCase() || '';
+          break;
+        default:
+          aValue = a[sortField] || '';
+          bValue = b[sortField] || '';
+      }
 
-  const openDeleteModal = (id, name) => {
-    setUserToDelete(id);
-    setShowDeleteModal(true);
-  };
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
 
+  // Pagination
+  const totalPages = Math.ceil(processedUsers.length / itemsPerPage);
+  const paginatedUsers = processedUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Toggle sort
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -63,282 +177,543 @@ const UserList = () => {
     }
   };
 
-  const getSortIcon = (field) => {
-    if (sortField !== field) return <FaSort className="text-muted" />;
-    return sortDirection === 'asc' ? <FaSortUp /> : <FaSortDown />;
+  // Get role badge
+  const getRoleBadge = (role) => {
+    const roleConfig = {
+      Admin: { color: 'bg-red-100 text-red-800', icon: Shield },
+      Treasurer: { color: 'bg-green-100 text-green-800', icon: CreditCard },
+      Secretary: { color: 'bg-blue-100 text-blue-800', icon: Edit },
+      Member: { color: 'bg-gray-100 text-gray-800', icon: User },
+      default: { color: 'bg-gray-100 text-gray-800', icon: User }
+    };
+    
+    const config = roleConfig[role] || roleConfig.default;
+    const IconComponent = config.icon;
+    
+    return (
+      <Badge className={`${config.color} border-0`}>
+        <IconComponent className="w-3 h-3 mr-1" />
+        {role}
+      </Badge>
+    );
   };
 
-  const filteredUsers = users
-    ? users
-        .filter((user) => 
-          (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           user.phoneNumber?.includes(searchTerm)) &&
-          (filterRole === '' || user.role === filterRole)
-        )
-        .sort((a, b) => {
-          let comparison = 0;
-          if (a[sortField] > b[sortField]) {
-            comparison = 1;
-          } else if (a[sortField] < b[sortField]) {
-            comparison = -1;
-          }
-          return sortDirection === 'desc' ? comparison * -1 : comparison;
-        })
-    : [];
+  // Get status badge
+  const getStatusBadge = (isActive, isVerified) => {
+    if (!isActive) {
+      return (
+        <Badge className="bg-red-100 text-red-800 border-0">
+          <UserX className="w-3 h-3 mr-1" />
+          Inactive
+        </Badge>
+      );
+    }
+    
+    if (isVerified) {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-0">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge className="bg-yellow-100 text-yellow-800 border-0">
+        <Clock className="w-3 h-3 mr-1" />
+        Pending
+      </Badge>
+    );
+  };
 
-  const getBadgeColor = (role) => {
-    switch (role) {
-      case 'Admin':
-        return 'danger';
-      case 'Manager':
-        return 'warning';
-      case 'Employee':
-        return 'info';
-      default:
-        return 'secondary';
+  // Handle user deletion
+  const handleDelete = (userId, userName) => {
+    setUserToDelete({ id: userId, name: userName });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      dispatch(deleteUser(userToDelete.id));
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     }
   };
 
-  return (
-    <Container fluid className="py-4">
-      <Card className="shadow-sm">
-        <Card.Header className="bg-white">
-          <Row className="align-items-center">
-            <Col>
-              <h3 className="mb-0 d-flex align-items-center">
-                <FaUserCircle className="me-2 text-primary" /> User Management
-              </h3>
-            </Col>
-            <Col xs="auto">
-              <Button 
-                variant="primary" 
-                className="d-flex align-items-center"
-                onClick={() => navigate('/admin/user/create')}
-              >
-                <FaUserPlus className="me-2" /> Add User
-              </Button>
-            </Col>
-          </Row>
-        </Card.Header>
-        
-        <Card.Body>
-          <Row className="mb-3">
-            <Col md={6} lg={4}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaSearch />
-                </InputGroup.Text>
-                <FormControl
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
-            </Col>
-            <Col md={4} lg={3}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaFilter />
-                </InputGroup.Text>
-                <Form.Select 
-                  value={filterRole} 
-                  onChange={(e) => setFilterRole(e.target.value)}
-                >
-                  <option value="">All Roles</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Employee">Employee</option>
-                  <option value="User">User</option>
-                </Form.Select>
-              </InputGroup>
-            </Col>
-            <Col xs="auto" className="ms-auto">
-              {users && (
-                <Badge bg="info" className="py-2 px-3">
-                  {filteredUsers.length} of {users.length} users
-                </Badge>
-              )}
-            </Col>
-          </Row>
+  // Calculate statistics
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.isActive).length,
+    verified: users.filter(u => u.isVerified).length,
+    admins: users.filter(u => u.role === 'Admin').length,
+    members: users.filter(u => u.role === 'Member').length,
+    treasurers: users.filter(u => u.role === 'Treasurer').length,
+    secretaries: users.filter(u => u.role === 'Secretary').length
+  };
 
-          {loading ? (
-            <div className="text-center p-5">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2 text-muted">Loading users...</p>
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-KE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const exportUsers = () => {
+  // Prepare data for export
+  const exportData = processedUsers.map(user => ({
+      Name: user.name,
+      Email: user.email,
+      Phone: user.phoneNumber || 'N/A',
+      Username: user.username || 'N/A',
+      Role: user.role,
+      Status: user.isActive ? 'Active' : 'Inactive',
+      Verified: user.isVerified ? 'Yes' : 'No',
+      County: user.county || 'N/A',
+      Language: user.language || 'N/A',
+      'Date Joined': formatDate(user.createdAt)
+    }));
+
+    // Convert to CSV
+    const headers = Object.keys(exportData[0]).join(',');
+    const csvContent = exportData.map(row => 
+      Object.values(row).map(value => 
+        `"${String(value).replace(/"/g, '""')}"`
+      ).join(',')
+    ).join('\n');
+    
+    const csv = headers + '\n' + csvContent;
+
+    // Create and download file
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Statistics Cards
+  const StatsCards = () => (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.total}</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.active} active, {stats.total - stats.active} inactive
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Verified Users</CardTitle>
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.verified}</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.total ? ((stats.verified / stats.total) * 100).toFixed(1) : 0}% verification rate
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Administrators</CardTitle>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.admins}</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.treasurers} treasurers, {stats.secretaries} secretaries
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Members</CardTitle>
+          <User className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.members}</div>
+          <p className="text-xs text-muted-foreground">
+            Regular platform members
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // Filters and Search
+  const FiltersSection = () => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-lg">Filters & Search</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search users by name, email, phone, or username..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          ) : error ? (
-            <Alert variant="danger" className="d-flex align-items-center">
-              <FaExclamationTriangle className="me-2" />
-              {error}
-            </Alert>
-          ) : (
-            <>
-              <div className="table-responsive">
-                <Table hover className="align-middle mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th onClick={() => handleSort('name')} className="cursor-pointer">
-                        <div className="d-flex align-items-center">
-                          NAME {getSortIcon('name')}
-                        </div>
-                      </th>
-                      <th onClick={() => handleSort('email')} className="cursor-pointer">
-                        <div className="d-flex align-items-center">
-                          EMAIL {getSortIcon('email')}
-                        </div>
-                      </th>
-                      <th onClick={() => handleSort('phoneNumber')} className="cursor-pointer">
-                        <div className="d-flex align-items-center">
-                          PHONE {getSortIcon('phoneNumber')}
-                        </div>
-                      </th>
-                      <th onClick={() => handleSort('role')} className="cursor-pointer">
-                        <div className="d-flex align-items-center">
-                          ROLE {getSortIcon('role')}
-                        </div>
-                      </th>
-                      <th className="text-end">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.length > 0 ? (
-                      filteredUsers.map((user) => (
-                        <tr key={user._id}>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <div className="bg-light rounded-circle p-2 me-3">
-                                <FaUserCircle size={20} className="text-secondary" />
+          </div>
+          
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="Admin">Admin</SelectItem>
+              <SelectItem value="Treasurer">Treasurer</SelectItem>
+              <SelectItem value="Secretary">Secretary</SelectItem>
+              <SelectItem value="Member">Member</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterVerified} onValueChange={setFilterVerified}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Verification" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="unverified">Unverified</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" onClick={() => {
+            setSearchTerm('');
+            setFilterRole('all');
+            setFilterStatus('all');
+            setFilterVerified('all');
+          }}>
+            Clear Filters
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Users className="h-8 w-8" />
+            User Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage and monitor all users across the platform
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportUsers}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={() => navigate('/users/create')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        </div>
+      </div>
+
+      <StatsCards />
+      <FiltersSection />
+
+      {/* Main Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Users ({processedUsers.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Contact
+                      {sortField === 'email' && (
+                        sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('role')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Role
+                      {sortField === 'role' && (
+                        sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('county')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Location
+                      {sortField === 'county' && (
+                        sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Joined
+                      {sortField === 'createdAt' && (
+                        sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground">No users found</p>
+                        {searchTerm || filterRole !== 'all' || filterStatus !== 'all' || filterVerified !== 'all' ? (
+                          <p className="text-sm text-muted-foreground">
+                            Try adjusting your filters or search terms
+                          </p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedUsers.map((user) => (
+                    <TableRow key={user._id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={user.profilePicture} alt={user.name} />
+                            <AvatarFallback>{getUserInitials(user.name)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-semibold">{user.name}</div>
+                            {user.username && (
+                              <div className="text-sm text-muted-foreground">
+                                @{user.username}
                               </div>
-                              <div>
-                                <Link 
-                                  to={`/users/${user._id}`}
-                                  className="text-decoration-none fw-bold"
-                                >
-                                  {user.name}
-                                </Link>
-                                <div className="small text-muted">ID: {user._id.substring(0, 8)}...</div>
-                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate max-w-xs">{user.email}</span>
+                          </div>
+                          {user.phoneNumber && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              <span>{user.phoneNumber}</span>
                             </div>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <FaEnvelope className="text-muted me-2" />
-                              <a href={`mailto:${user.email}`} className="text-decoration-none">
-                                {user.email}
-                              </a>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <FaPhone className="text-muted me-2" />
-                              {user.phoneNumber || 'Not provided'}
-                            </div>
-                          </td>
-                          <td>
-                            <Badge bg={getBadgeColor(user.role)} className="py-2 px-3">
-                              <FaUserTag className="me-1" /> {user.role}
-                            </Badge>
-                          </td>
-                          <td>
-                            <div className="d-flex justify-content-end">
-                              <OverlayTrigger
-                                placement="top"
-                                overlay={<Tooltip>Edit User</Tooltip>}
-                              >
-                                <LinkContainer to={`/admin/user/${user._id}/edit`}>
-                                  <Button variant="light" className="btn-sm me-2">
-                                    <FaPencilAlt />
-                                  </Button>
-                                </LinkContainer>
-                              </OverlayTrigger>
-                              
-                              <OverlayTrigger
-                                placement="top"
-                                overlay={<Tooltip>Delete User</Tooltip>}
-                              >
-                                <Button
-                                  variant="light"
-                                  className="btn-sm text-danger"
-                                  onClick={() => openDeleteModal(user._id, user.name)}
-                                >
-                                  <FaTrashAlt />
-                                </Button>
-                              </OverlayTrigger>
-                              
-                              <Dropdown className="ms-2">
-                                <Dropdown.Toggle variant="light" size="sm" id={`dropdown-${user._id}`}>
-                                  <FaEllipsisV />
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu align="end">
-                                  <Dropdown.Item as={Link} to={`/users/${user._id}`}>
-                                    <FaIdCard className="me-2" /> View Profile
-                                  </Dropdown.Item>
-                                  <Dropdown.Item as={Link} to={`/admin/user/${user._id}/permissions`}>
-                                    <FaUserTag className="me-2" /> Manage Permissions
-                                  </Dropdown.Item>
-                                  <Dropdown.Divider />
-                                </Dropdown.Menu>
-                              </Dropdown>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center py-5 text-muted">
-                          No users found matching your search criteria.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </Table>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getRoleBadge(user.role)}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(user.isActive, user.isVerified)}
+                      </TableCell>
+                      <TableCell>
+                        {user.county && (
+                          <div className="flex items-center gap-1 text-sm">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span>{user.county}</span>
+                          </div>
+                        )}
+                        {user.language && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Globe className="h-3 w-3" />
+                            <span>{user.language}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(user.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(`/users/${user._id}`)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/users/${user._id}/edit`)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(user._id, user.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              disabled={user._id === userInfo?.user?._id}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, processedUsers.length)} of {processedUsers.length} users
               </div>
-              {users && users.length > 10 && (
-                <div className="d-flex justify-content-center mt-4">
-                  <Button variant="outline-primary" className="px-4">
-                    Load More Users
-                  </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
                 </div>
-              )}
-            </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
-        </Card.Body>
+        </CardContent>
       </Card>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="text-danger">
-            <FaExclamationTriangle className="me-2" /> Delete User
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete this user? This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button 
-            variant="danger" 
-            onClick={confirmDeleteHandler}
-            disabled={deleteLoading}
-          >
-            {deleteLoading ? (
-              <>
-                <Spinner as="span" animation="border" size="sm" className="me-2" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <FaTrashAlt className="me-2" /> Delete User
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete user "{userToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

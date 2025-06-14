@@ -32,6 +32,54 @@ import {
     GROUP_LEAVE_REQUEST,
     GROUP_LEAVE_SUCCESS,
     GROUP_LEAVE_FAIL,
+    GROUP_DELETE_REQUEST,
+    GROUP_DELETE_SUCCESS,
+    GROUP_DELETE_FAIL,
+    GROUP_PUBLIC_LIST_REQUEST,
+    GROUP_PUBLIC_LIST_SUCCESS,
+    GROUP_PUBLIC_LIST_FAIL,
+    GROUP_MY_INVITATIONS_REQUEST,
+    GROUP_MY_INVITATIONS_SUCCESS,
+    GROUP_MY_INVITATIONS_FAIL,
+    GROUP_INVITE_USER_REQUEST,
+    GROUP_INVITE_USER_SUCCESS,
+    GROUP_INVITE_USER_FAIL,
+    GROUP_RESPOND_INVITATION_REQUEST,
+    GROUP_RESPOND_INVITATION_SUCCESS,
+    GROUP_RESPOND_INVITATION_FAIL,
+    GROUP_JOIN_REQUEST_REQUEST,
+    GROUP_JOIN_REQUEST_SUCCESS,
+    GROUP_JOIN_REQUEST_FAIL,
+    GROUP_REVIEW_JOIN_REQUEST_REQUEST,
+    GROUP_REVIEW_JOIN_REQUEST_SUCCESS,
+    GROUP_REVIEW_JOIN_REQUEST_FAIL,
+    GROUP_GET_JOIN_REQUESTS_REQUEST,
+    GROUP_GET_JOIN_REQUESTS_SUCCESS,
+    GROUP_GET_JOIN_REQUESTS_FAIL,
+    GROUP_WALLET_CONTRIBUTION_REQUEST,
+    GROUP_WALLET_CONTRIBUTION_SUCCESS,
+    GROUP_WALLET_CONTRIBUTION_FAIL,
+    GROUP_CASH_CONTRIBUTION_REQUEST,
+    GROUP_CASH_CONTRIBUTION_SUCCESS,
+    GROUP_CASH_CONTRIBUTION_FAIL,
+    GROUP_MOBILE_CONTRIBUTION_REQUEST,
+    GROUP_MOBILE_CONTRIBUTION_SUCCESS,
+    GROUP_MOBILE_CONTRIBUTION_FAIL,
+    GROUP_GET_CONTRIBUTIONS_REQUEST,
+    GROUP_GET_CONTRIBUTIONS_SUCCESS,
+    GROUP_GET_CONTRIBUTIONS_FAIL,
+    GROUP_MEMBER_CONTRIBUTIONS_REQUEST,
+    GROUP_MEMBER_CONTRIBUTIONS_SUCCESS,
+    GROUP_MEMBER_CONTRIBUTIONS_FAIL,
+    GROUP_FUND_WALLET_REQUEST,
+    GROUP_FUND_WALLET_SUCCESS,
+    GROUP_FUND_WALLET_FAIL,
+    GROUP_PAY_MEMBER_REQUEST,
+    GROUP_PAY_MEMBER_SUCCESS,
+    GROUP_PAY_MEMBER_FAIL,
+    GROUP_GET_MY_JOIN_REQUESTS_REQUEST,
+    GROUP_GET_MY_JOIN_REQUESTS_SUCCESS,
+    GROUP_GET_MY_JOIN_REQUESTS_FAIL
   } from '../constants/groupConstants';
   
   export const groupCreateReducer = (state = {}, action) => {
@@ -176,3 +224,211 @@ import {
         return state;
     }
   };
+
+  export const groupDeleteReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_DELETE_REQUEST:
+      return { loading: true };
+    case GROUP_DELETE_SUCCESS:
+      return { loading: false, success: true };
+    case GROUP_DELETE_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupPublicListReducer = (state = { groups: [] }, action) => {
+  switch (action.type) {
+    case GROUP_PUBLIC_LIST_REQUEST:
+      return { loading: true, groups: [] };
+    case GROUP_PUBLIC_LIST_SUCCESS:
+      return { loading: false, groups: action.payload };
+    case GROUP_PUBLIC_LIST_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const myGroupInvitationsReducer = (state = { invitations: [] }, action) => {
+  switch (action.type) {
+    case GROUP_MY_INVITATIONS_REQUEST:
+      return { loading: true, invitations: [] };
+    case GROUP_MY_INVITATIONS_SUCCESS:
+      return { loading: false, invitations: action.payload };
+    case GROUP_MY_INVITATIONS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupInviteUserReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_INVITE_USER_REQUEST:
+      return { loading: true };
+    case GROUP_INVITE_USER_SUCCESS:
+      return { loading: false, success: true, invitation: action.payload };
+    case GROUP_INVITE_USER_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupRespondInvitationReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_RESPOND_INVITATION_REQUEST:
+      return { loading: true };
+    case GROUP_RESPOND_INVITATION_SUCCESS:
+      return { loading: false, success: true, invitation: action.payload };
+    case GROUP_RESPOND_INVITATION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupJoinRequestReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_JOIN_REQUEST_REQUEST:
+      return { loading: true };
+    case GROUP_JOIN_REQUEST_SUCCESS:
+      return { loading: false, success: true, joinRequest: action.payload };
+    case GROUP_JOIN_REQUEST_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupReviewJoinRequestReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_REVIEW_JOIN_REQUEST_REQUEST:
+      return { loading: true };
+    case GROUP_REVIEW_JOIN_REQUEST_SUCCESS:
+      return { loading: false, success: true, joinRequest: action.payload };
+    case GROUP_REVIEW_JOIN_REQUEST_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupGetJoinRequestsReducer = (state = { joinRequests: [] }, action) => {
+  switch (action.type) {
+    case GROUP_GET_JOIN_REQUESTS_REQUEST:
+      return { loading: true, joinRequests: [] };
+    case GROUP_GET_JOIN_REQUESTS_SUCCESS:
+      return { loading: false, joinRequests: action.payload };
+    case GROUP_GET_JOIN_REQUESTS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupGetMyJoinRequestsReducer = (state = { joinRequests: [] }, action) => {
+  switch (action.type) {
+    case GROUP_GET_MY_JOIN_REQUESTS_REQUEST:
+      return { loading: true, MyjoinRequests: [] };
+    case GROUP_GET_MY_JOIN_REQUESTS_SUCCESS:
+      return { loading: false, MyjoinRequests: action.payload };
+    case GROUP_GET_MY_JOIN_REQUESTS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupWalletContributionReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_WALLET_CONTRIBUTION_REQUEST:
+      return { loading: true };
+    case GROUP_WALLET_CONTRIBUTION_SUCCESS:
+      return { loading: false, success: true, contribution: action.payload };
+    case GROUP_WALLET_CONTRIBUTION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupCashContributionReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_CASH_CONTRIBUTION_REQUEST:
+      return { loading: true };
+    case GROUP_CASH_CONTRIBUTION_SUCCESS:
+      return { loading: false, success: true, contribution: action.payload };
+    case GROUP_CASH_CONTRIBUTION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupMobileContributionReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_MOBILE_CONTRIBUTION_REQUEST:
+      return { loading: true };
+    case GROUP_MOBILE_CONTRIBUTION_SUCCESS:
+      return { loading: false, success: true, contribution: action.payload };
+    case GROUP_MOBILE_CONTRIBUTION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupContributionsReducer = (state = { contributions: [] }, action) => {
+  switch (action.type) {
+    case GROUP_GET_CONTRIBUTIONS_REQUEST:
+      return { loading: true, contributions: [] };
+    case GROUP_GET_CONTRIBUTIONS_SUCCESS:
+      return { loading: false, contributions: action.payload };
+    case GROUP_GET_CONTRIBUTIONS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupMemberContributionsReducer = (state = { contributions: [] }, action) => {
+  switch (action.type) {
+    case GROUP_MEMBER_CONTRIBUTIONS_REQUEST:
+      return { loading: true, contributions: [] };
+    case GROUP_MEMBER_CONTRIBUTIONS_SUCCESS:
+      return { loading: false, contributions: action.payload };
+    case GROUP_MEMBER_CONTRIBUTIONS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupFundWalletReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_FUND_WALLET_REQUEST:
+      return { loading: true };
+    case GROUP_FUND_WALLET_SUCCESS:
+      return { loading: false, success: true, result: action.payload };
+    case GROUP_FUND_WALLET_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const groupPayMemberReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_PAY_MEMBER_REQUEST:
+      return { loading: true };
+    case GROUP_PAY_MEMBER_SUCCESS:
+      return { loading: false, success: true, result: action.payload };
+    case GROUP_PAY_MEMBER_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};

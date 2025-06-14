@@ -1,358 +1,477 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { getWalletDetails } from '../../actions/walletActions'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
-  Table, Container, Alert, Badge, Card, Row, Col, 
-  Spinner, Form, InputGroup, Pagination, Button
-} from 'react-bootstrap';
-import { useDispatch, useSelector } from 'react-redux';
-import { getWalletDetails } from '../../actions/walletActions';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { 
-  FaArrowLeft, FaSearch, FaFilter, FaDownload, 
-  FaCalendarAlt, FaSort, FaSortAmountUp, FaSortAmountDown,
-  FaMoneyBillWave, FaCreditCard, FaExchangeAlt, FaInfoCircle
-} from 'react-icons/fa';
+  ArrowDownCircle, 
+  ArrowUpCircle, 
+  ArrowLeft,
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Download,
+  Calendar
+} from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatCurrency } from '@/lib/utils'
 
 const TransactionHistory = () => {
-  const params = useParams();
-  const userId = params.userId;
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const params = useParams()
+  const userId = params.userId
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [sortField, setSortField] = useState('date');
-  const [sortDirection, setSortDirection] = useState('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [sortField, setSortField] = useState('date')
+  const [sortDirection, setSortDirection] = useState('desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
-  const walletDetails = useSelector((state) => state.walletDetails);
-  const { loading, error, wallet } = walletDetails;
+  const walletDetails = useSelector((state) => state.walletDetails)
+  const { loading, error, wallet } = walletDetails
 
-  const userLogin = useSelector((state) => state.userLogin);
-  const { userInfo } = userLogin;
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
 
   useEffect(() => {
     if (userInfo) {
-      dispatch(getWalletDetails(userId));
+      dispatch(getWalletDetails(userId))
     } else {
-      navigate('/login');
+      navigate('/login')
     }
-  }, [dispatch, navigate, userId, userInfo]);
+  }, [dispatch, navigate, userId, userInfo])
 
   // Filtered and sorted transactions
   const getFilteredTransactions = () => {
-    if (!wallet || !wallet.transactions) return [];
+    if (!wallet || !wallet.transactions) return []
     
-    let filtered = [...wallet.transactions];
+    let filtered = [...wallet.transactions]
     
     // Apply type filter
     if (filter !== 'all') {
-      filtered = filtered.filter(t => t.type === filter);
+      filtered = filtered.filter(t => t.type === filter)
     }
     
     // Apply search filter
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm.toLowerCase()
       filtered = filtered.filter(t => 
         t.description?.toLowerCase().includes(term) ||
         t.paymentMethod?.toLowerCase().includes(term) ||
         t.paymentReference?.toLowerCase().includes(term)
-      );
+      )
     }
     
     // Apply sorting
     filtered.sort((a, b) => {
-      let compareA, compareB;
+      let compareA, compareB
       
       switch (sortField) {
         case 'amount':
-          compareA = a.amount;
-          compareB = b.amount;
-          break;
+          compareA = a.amount
+          compareB = b.amount
+          break
         case 'type':
-          compareA = a.type;
-          compareB = b.type;
-          break;
+          compareA = a.type
+          compareB = b.type
+          break
         case 'date':
         default:
-          compareA = new Date(a.date);
-          compareB = new Date(b.date);
+          compareA = new Date(a.date)
+          compareB = new Date(b.date)
       }
       
-      if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1;
-      if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
+      if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1
+      if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
     
-    return filtered;
-  };
+    return filtered
+  }
 
-  const filteredTransactions = getFilteredTransactions();
+  const filteredTransactions = getFilteredTransactions()
   
   // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
 
-  const getTransactionTypeBadge = (type) => {
+  const getTransactionIcon = (type) => {
     switch (type) {
       case 'deposit':
-        return <Badge bg="success" className="py-2 px-3"><FaMoneyBillWave className="me-1" /> Deposit</Badge>;
+        return <ArrowDownCircle className="h-5 w-5 text-green-500" />
       case 'withdrawal':
-        return <Badge bg="danger" className="py-2 px-3"><FaCreditCard className="me-1" /> Withdrawal</Badge>;
+        return <ArrowUpCircle className="h-5 w-5 text-red-500" />
       default:
-        return <Badge bg="info" className="py-2 px-3"><FaExchangeAlt className="me-1" /> {type}</Badge>;
+        return <ArrowDownCircle className="h-5 w-5 text-gray-500" />
     }
-  };
+  }
+
+  const getTransactionBadge = (type) => {
+    switch (type) {
+      case 'deposit':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Deposit</Badge>
+      case 'withdrawal':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Withdrawal</Badge>
+      default:
+        return <Badge variant="secondary">{type}</Badge>
+    }
+  }
 
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
-      setSortField(field);
-      setSortDirection('asc');
+      setSortField(field)
+      setSortDirection('asc')
     }
-  };
+  }
 
   const renderSortIcon = (field) => {
-    if (sortField !== field) return <FaSort className="ms-1 text-muted" />;
-    return sortDirection === 'asc' ? <FaSortAmountUp className="ms-1 text-primary" /> : <FaSortAmountDown className="ms-1 text-primary" />;
-  };
-
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-    
-    let items = [];
-    const maxPages = 5;
-    const startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
-    const endPage = Math.min(totalPages, startPage + maxPages - 1);
-    
-    items.push(
-      <Pagination.First 
-        key="first" 
-        onClick={() => setCurrentPage(1)} 
-        disabled={currentPage === 1} 
-      />
-    );
-    
-    items.push(
-      <Pagination.Prev 
-        key="prev" 
-        onClick={() => setCurrentPage(currentPage - 1)} 
-        disabled={currentPage === 1} 
-      />
-    );
-    
-    for (let number = startPage; number <= endPage; number++) {
-      items.push(
-        <Pagination.Item 
-          key={number} 
-          active={number === currentPage}
-          onClick={() => setCurrentPage(number)}
-        >
-          {number}
-        </Pagination.Item>
-      );
-    }
-    
-    items.push(
-      <Pagination.Next 
-        key="next" 
-        onClick={() => setCurrentPage(currentPage + 1)} 
-        disabled={currentPage === totalPages} 
-      />
-    );
-    
-    items.push(
-      <Pagination.Last 
-        key="last" 
-        onClick={() => setCurrentPage(totalPages)} 
-        disabled={currentPage === totalPages} 
-      />
-    );
-    
-    return <Pagination className="mt-3 justify-content-center">{items}</Pagination>;
-  };
+    if (sortField !== field) return null
+    return sortDirection === 'asc' ? 
+      <SortAsc className="ml-1 h-4 w-4" /> : 
+      <SortDesc className="ml-1 h-4 w-4" />
+  }
 
   const getTotalAmount = (type) => {
-    if (!wallet || !wallet.transactions) return 0;
+    if (!wallet || !wallet.transactions) return 0
     return wallet.transactions
       .filter(t => type === 'all' || t.type === type)
-      .reduce((sum, t) => sum + t.amount, 0);
-  };
+      .reduce((sum, t) => sum + (t.amount || 0), 0)
+  }
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null
+    
+    return (
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length} transactions
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) return <TransactionHistorySkeleton />
+  if (error) return <div className="text-center text-red-500">Error: {error}</div>
 
   return (
-    <Container className="py-4">
-      <Card className="shadow-sm mb-4">
-        <Card.Body>
-          <Link to={`/wallet/${userId}`} className="btn btn-outline-primary mb-3">
-            <FaArrowLeft className="me-2" /> Back to Wallet
-          </Link>
-          
-          <h2 className="mb-4 d-flex align-items-center">
-            <FaExchangeAlt className="me-3 text-primary" /> 
-            Transaction History
-          </h2>
-          
-          {loading ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-3">Loading transaction data...</p>
-            </div>
-          ) : error ? (
-            <Alert variant="danger">
-              <FaInfoCircle className="me-2" /> {error}
-            </Alert>
-          ) : (
-            <>
-              {/* Summary Cards */}
-              <Row className="mb-4">
-                <Col md={4}>
-                  <Card className="bg-light mb-3">
-                    <Card.Body className="text-center">
-                      <h6 className="text-muted mb-2">Total Transactions</h6>
-                      <h3>{wallet.transactions?.length || 0}</h3>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card className="bg-success text-white mb-3">
-                    <Card.Body className="text-center">
-                      <h6 className="mb-2">Total Deposits</h6>
-                      <h3>KES {getTotalAmount('deposit').toLocaleString()}</h3>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card className="bg-danger text-white mb-3">
-                    <Card.Body className="text-center">
-                      <h6 className="mb-2">Total Withdrawals</h6>
-                      <h3>KES {getTotalAmount('withdrawal').toLocaleString()}</h3>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-              
-              {/* Filters Row */}
-              <Row className="mb-4 align-items-center">
-                <Col md={6} lg={4}>
-                  <InputGroup>
-                    <InputGroup.Text><FaSearch /></InputGroup.Text>
-                    <Form.Control
-                      placeholder="Search transactions..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </InputGroup>
-                </Col>
-                <Col md={6} lg={3} className="mt-3 mt-md-0">
-                  <InputGroup>
-                    <InputGroup.Text><FaFilter /></InputGroup.Text>
-                    <Form.Select
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                    >
-                      <option value="all">All Transactions</option>
-                      <option value="deposit">Deposits Only</option>
-                      <option value="withdrawal">Withdrawals Only</option>
-                    </Form.Select>
-                  </InputGroup>
-                </Col>
-                <Col md={12} lg={5} className="mt-3 mt-lg-0 text-md-end">
-                  <Button variant="outline-secondary" className="me-2">
-                    <FaCalendarAlt className="me-1" /> Date Range
-                  </Button>
-                  <Button variant="outline-success">
-                    <FaDownload className="me-1" /> Export
-                  </Button>
-                </Col>
-              </Row>
-              
-              {/* Transaction Table */}
-              {filteredTransactions.length === 0 ? (
-                <Alert variant="info" className="text-center">
-                  <FaInfoCircle size={28} className="mb-3" />
-                  <h5>No transactions found</h5>
-                  <p className="mb-0">Try changing your search or filter options</p>
-                </Alert>
-              ) : (
-                <>
-                  <div className="table-responsive">
-                    <Table hover className="table-borderless">
-                      <thead className="bg-light">
-                        <tr>
-                          <th className="cursor-pointer" onClick={() => handleSort('date')}>
-                            <span className="d-flex align-items-center">
-                              DATE {renderSortIcon('date')}
-                            </span>
-                          </th>
-                          <th className="cursor-pointer" onClick={() => handleSort('type')}>
-                            <span className="d-flex align-items-center">
-                              TYPE {renderSortIcon('type')}
-                            </span>
-                          </th>
-                          <th className="cursor-pointer" onClick={() => handleSort('amount')}>
-                            <span className="d-flex align-items-center">
-                              AMOUNT {renderSortIcon('amount')}
-                            </span>
-                          </th>
-                          <th>METHOD</th>
-                          <th>REFERENCE</th>
-                          <th>DESCRIPTION</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentTransactions.map((transaction) => (
-                          <tr key={transaction._id} className="border-bottom">
-                            <td className="py-3">
-                              <div className="fw-bold">{new Date(transaction.date).toLocaleDateString()}</div>
-                              <small className="text-muted">{new Date(transaction.date).toLocaleTimeString()}</small>
-                            </td>
-                            <td className="py-3">{getTransactionTypeBadge(transaction.type)}</td>
-                            <td className={`py-3 fw-bold ${transaction.type === 'deposit' ? 'text-success' : 'text-danger'}`}>
-                              {transaction.type === 'withdrawal' ? '- ' : '+ '}
-                              KES {transaction.amount.toLocaleString()}
-                            </td>
-                            <td className="py-3">
-                              <Badge bg="light" text="dark" pill className="px-3 py-2">
-                                {transaction.paymentMethod}
-                              </Badge>
-                            </td>
-                            <td className="py-3">
-                              <span className="text-muted">{transaction.paymentReference}</span>
-                            </td>
-                            <td className="py-3">{transaction.description}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                  
-                  {/* Pagination */}
-                  {renderPagination()}
-                  
-                  <div className="d-flex justify-content-between align-items-center mt-3">
-                    <span className="text-muted">
-                      Showing {Math.min(filteredTransactions.length, indexOfFirstItem + 1)} to {Math.min(filteredTransactions.length, indexOfLastItem)} of {filteredTransactions.length} entries
-                    </span>
-                    <Form.Select 
-                      style={{ width: 'auto' }}
-                      value={itemsPerPage}
-                      disabled
-                      className="ms-2"
-                    >
-                      <option value="10">10 per page</option>
-                    </Form.Select>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </Card.Body>
-      </Card>
-    </Container>
-  );
-};
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate(`/wallet/${userId}`)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">Transaction History</h1>
+        </div>
+        <Button variant="outline" size="sm">
+          <Download className="mr-2 h-4 w-4" />
+          Export
+        </Button>
+      </div>
 
-export default TransactionHistory;
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredTransactions.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {filter === 'all' ? 'All types' : `${filter}s only`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
+            <ArrowDownCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(getTotalAmount('deposit'))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Money added to wallet
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
+            <ArrowUpCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(getTotalAmount('withdrawal'))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Money withdrawn from wallet
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Filter className="mr-2 h-5 w-5" />
+            Filters & Search
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="deposit">Deposits</SelectItem>
+                <SelectItem value="withdrawal">Withdrawals</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortField} onValueChange={setSortField}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="type">Type</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transactions List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Transactions 
+            {filteredTransactions.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({filteredTransactions.length} found)
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {currentTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No transactions found</p>
+                {searchTerm && (
+                  <Button 
+                    variant="link" 
+                    onClick={() => setSearchTerm('')}
+                    className="mt-2"
+                  >
+                    Clear search
+                  </Button>
+                )}
+              </div>
+            ) : (
+              currentTransactions.map((tx) => (
+                <div key={tx._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    {getTransactionIcon(tx.type)}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">{tx.description || 'Transaction'}</p>
+                        {getTransactionBadge(tx.type)}
+                      </div>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(tx.date).toLocaleDateString()} at {new Date(tx.date).toLocaleTimeString()}
+                        </p>
+                        {tx.paymentMethod && (
+                          <Badge variant="outline" className="text-xs">
+                            {tx.paymentMethod}
+                          </Badge>
+                        )}
+                        {tx.paymentReference && (
+                          <span className="text-xs text-muted-foreground">
+                            Ref: {tx.paymentReference}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-semibold ${
+                      tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount || 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {tx.status || 'Completed'}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 pt-4 border-t">
+              {renderPagination()}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+const TransactionHistorySkeleton = () => {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-1/4" />
+        <Skeleton className="h-8 w-24" />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-3/4 mt-2" />
+              <Skeleton className="h-3 w-1/2 mt-2" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-1/4" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-full md:w-[180px]" />
+            <Skeleton className="h-10 w-full md:w-[180px]" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-1/4" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <Skeleton className="h-5 w-5 rounded-full" />
+                  <div>
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24 mt-2" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-3 w-16 mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export default TransactionHistory

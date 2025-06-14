@@ -54,6 +54,8 @@ export const createLoan = (loanData) => async (dispatch) => {
   try {
     dispatch({ type: LOAN_CREATE_REQUEST });
 
+    console.log('Creating loan with data:', loanData);
+
     const { data } = await api.createLoan(loanData);
 
     dispatch({

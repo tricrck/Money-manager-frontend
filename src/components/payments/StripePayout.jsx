@@ -1,173 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Alert, Row, Col, Spinner, Modal, InputGroup } from 'react-bootstrap';
-import { FaCreditCard, FaMoneyBillWave, FaArrowLeft, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
-import { useDispatch, useSelector } from 'react-redux';
-import { initiateStripePayout } from '../../actions/paymentActions';
-import { getWalletDetails } from '../../actions/walletActions';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { initiateStripePayout } from "../../actions/paymentActions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
-const StripePayout = ({ history }) => {
-  const params = useParams();
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('usd');
-  const [withdrawalPurpose, setWithdrawalPurpose] = useState('wallet_withdrawal');
-  const [description, setDescription] = useState('');
-  const [destination, setDestination] = useState('');
-
-  const [validated, setValidated] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
+const StripePayout = ({ amount1, userId, onClose }) => {
   const dispatch = useDispatch();
+  
+  const [amount, setAmount] = useState(amount1 || "");
+  const [destination, setDestination] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [withdrawalPurpose, setWithdrawalPurpose] = useState("loan_repayment");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [validated, setValidated] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const { wallet } = useSelector((state) => state.walletDetails);
-  const { loading, error, success, payout } = useSelector((state) => state.stripePayout);
-  const { userInfo } = useSelector((state) => state.userLogin);
-
-  const userId = params.userId || userInfo?.user?._id;
-
-  useEffect(() => {
-    if (!userInfo) {
-      history.push('/login');
-    } else if (!wallet || wallet.user?._id !== userId) {
-      dispatch(getWalletDetails(userId));
+  const validateForm = () => {
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      setError("Please enter a valid amount greater than 0");
+      return false;
     }
-  }, [dispatch, history, userId, wallet, userInfo]);
-
-  useEffect(() => {
-    if (success) {
-      setShowSuccessModal(true);
+    
+    if (!destination.trim()) {
+      setError("Please enter a destination account");
+      return false;
     }
-  }, [success]);
+    
+    setError("");
+    return true;
+  };
 
-  const submitHandler = (e) => {
+  const handlePayout = async (e) => {
     e.preventDefault();
+    setValidated(true);
 
-    if (amount <= 0 || isNaN(amount) || !destination) {
-      setValidated(true);
+    if (!validateForm()) {
       return;
     }
 
-    const payoutData = {
-      amount: parseFloat(amount),
-      currency,
-      destination,
-      withdrawalPurpose,
-      description,
-      metadata: {
-        userId
-      }
-    };
+    setLoading(true);
+    setError("");
 
-    dispatch(initiateStripePayout(payoutData));
+    try {
+      const payoutData = {
+        amount: parseFloat(amount),
+        currency,
+        destination: destination.trim(),
+        withdrawalPurpose,
+        description: description.trim() || `Payout of ${amount} ${currency}`,
+        metadata: {
+          userId
+        }
+      };
+
+      await dispatch(initiateStripePayout(payoutData));
+      
+      // Close modal on success if onClose is provided
+      if (onClose) {
+        onClose();
+      }
+    } catch (err) {
+      setError(err.message || "An error occurred while processing the payout");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const handleAmountChange = (e) => {
+    const value = e.target.value;
+    // Allow only numbers and decimal point
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setAmount(value);
+      if (validated && error) {
+        validateForm();
+      }
+    }
   };
 
   return (
-    <Container className="py-4">
-      <Link to="/wallet" className="btn btn-outline-secondary mb-3">
-        <FaArrowLeft /> Back to Wallet
-      </Link>
+    <div className="max-w-md mx-auto p-4 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+      <Card>
+        <CardHeader>
+          <CardTitle>Withdraw Funds</CardTitle>
+          <CardDescription>Transfer funds from your wallet to your account.</CardDescription>
+        </CardHeader>
 
-      <h3 className="text-primary mb-4">Initiate Stripe Payout</h3>
-
-      {error && <Alert variant="danger"><FaExclamationTriangle className="me-2" />{error}</Alert>}
-
-      <Form noValidate validated={validated} onSubmit={submitHandler} className="shadow p-4 rounded bg-light">
-        <Row className="mb-3">
-          <Col md={6}>
-            <Form.Label>Amount</Form.Label>
-            <InputGroup>
-              <InputGroup.Text><FaMoneyBillWave /></InputGroup.Text>
-              <Form.Control
-                required
-                type="number"
+        <form onSubmit={handlePayout}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount *</Label>
+              <Input
+                id="amount"
+                type="text"
                 placeholder="Enter amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="1"
+                onChange={handleAmountChange}
+                className={validated && (!amount || amount <= 0) ? "border-red-500" : ""}
+                required
               />
-            </InputGroup>
-            <Form.Text muted>Must be greater than 0</Form.Text>
-          </Col>
+            </div>
 
-          <Col md={6}>
-            <Form.Label>Currency</Form.Label>
-            <Form.Select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value.toLowerCase())}
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Input
+                id="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                placeholder="USD"
+                maxLength={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="destination">Destination Account *</Label>
+              <Input
+                id="destination"
+                placeholder="e.g., acct_1234567890"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className={validated && !destination.trim() ? "border-red-500" : ""}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="withdrawalPurpose">Withdrawal Purpose</Label>
+              <select
+                id="withdrawalPurpose"
+                value={withdrawalPurpose}
+                onChange={(e) => setWithdrawalPurpose(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+              >
+                <option value="loan_repayment">Loan Repayment</option>
+                <option value="business_payment">Business Payment</option>
+                <option value="personal_transfer">Personal Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                placeholder="Enter description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-end space-x-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCancel}
+              disabled={loading}
             >
-              <option value="usd">USD</option>
-              <option value="eur">EUR</option>
-              <option value="gbp">GBP</option>
-              <option value="kes">KES</option>
-            </Form.Select>
-          </Col>
-        </Row>
-
-        <Row className="mb-3">
-          <Col md={6}>
-            <Form.Label>Destination (Bank/Card ID)</Form.Label>
-            <Form.Control
-              required
-              type="text"
-              placeholder="Enter destination ID"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-            />
-          </Col>
-
-          <Col md={6}>
-            <Form.Label>Withdrawal Purpose</Form.Label>
-            <Form.Select
-              value={withdrawalPurpose}
-              onChange={(e) => setWithdrawalPurpose(e.target.value)}
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading}
             >
-              <option value="wallet_withdrawal">Wallet Withdrawal</option>
-              <option value="refund">Refund</option>
-              <option value="manual_transfer">Manual Transfer</option>
-            </Form.Select>
-          </Col>
-        </Row>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Description (Optional)</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder="Add any notes for this payout..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Form.Group>
-
-        <div className="d-grid">
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={loading}
-          >
-            {loading ? <Spinner animation="border" size="sm" /> : 'Process Payout'}
-          </Button>
-        </div>
-      </Form>
-
-      {/* Success Modal */}
-      <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="text-success">
-            <FaCheckCircle className="me-2" /> Payout Processed
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Your payout of <strong>${payout?.amount}</strong> to destination <strong>{payout?.destination}</strong> has been successfully initiated.</p>
-          <p>Status: <strong>{payout?.status}</strong></p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="success" onClick={() => setShowSuccessModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Container>
+              {loading ? "Processing..." : "Submit Payout"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
   );
 };
 

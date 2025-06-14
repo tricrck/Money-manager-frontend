@@ -86,7 +86,7 @@ import {
     }
     
     // Optional: Redirect to login page
-    window.location.href = '/login';
+    window.location.href = '/home';
   };
   
   export const listUsers = () => async (dispatch, getState) => {

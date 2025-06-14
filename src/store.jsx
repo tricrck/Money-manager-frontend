@@ -39,6 +39,23 @@ import {
   groupUpdateMemberReducer,
   groupRemoveMemberReducer,
   groupLeaveReducer,
+
+  groupDeleteReducer,
+  groupPublicListReducer,
+  myGroupInvitationsReducer,
+  groupInviteUserReducer,
+  groupRespondInvitationReducer,
+  groupJoinRequestReducer,
+  groupReviewJoinRequestReducer,
+  groupGetJoinRequestsReducer,
+  groupWalletContributionReducer,
+  groupCashContributionReducer,
+  groupMobileContributionReducer,
+  groupContributionsReducer,
+  groupMemberContributionsReducer,
+  groupFundWalletReducer,
+  groupPayMemberReducer,
+  groupGetMyJoinRequestsReducer,
 } from './reducers/groupReducers';
 import {
   walletDetailsReducer,
@@ -58,7 +75,14 @@ import {
   stripePayoutDetailsReducer,
   stripeBalanceReducer,
 } from './reducers/paymentReducers';
-
+import reportReducer from './reducers/reportReducer';
+import {
+  settingsGetReducer,
+  settingsUpdateReducer,
+  settingsResetReducer,
+  serverInfoGetReducer,
+  dbInfoGetReducer,
+} from './reducers/settingReducer';
   
 
 
@@ -98,6 +122,23 @@ const reducer = combineReducers({
   groupUpdateMember: groupUpdateMemberReducer,
   groupRemoveMember: groupRemoveMemberReducer,
   groupLeave: groupLeaveReducer,
+  groupDelete: groupDeleteReducer,
+  groupPublicList: groupPublicListReducer,
+  myGroupInvitations: myGroupInvitationsReducer,
+  groupInviteUser: groupInviteUserReducer,
+  groupRespondInvitation: groupRespondInvitationReducer,
+  groupJoinRequest: groupJoinRequestReducer,
+  groupReviewJoinRequest: groupReviewJoinRequestReducer,
+  groupGetJoinRequests: groupGetJoinRequestsReducer,
+  groupGetMyJoinRequests: groupGetMyJoinRequestsReducer,
+  groupWalletContribution: groupWalletContributionReducer,
+  groupCashContribution: groupCashContributionReducer,
+  groupMobileContribution: groupMobileContributionReducer,
+  groupContributions: groupContributionsReducer,
+  groupMemberContributions: groupMemberContributionsReducer,
+  groupFundWallet: groupFundWalletReducer,
+  groupPayMember: groupPayMemberReducer,
+
 
   walletDetails: walletDetailsReducer,
   walletUpdate: walletUpdateReducer,
@@ -114,6 +155,14 @@ const reducer = combineReducers({
   stripePayout: stripePayoutReducer,
   stripePayoutDetails: stripePayoutDetailsReducer,
   stripeBalance: stripeBalanceReducer,
+
+  reports: reportReducer,
+
+  settingsGet: settingsGetReducer,
+  settingsUpdate: settingsUpdateReducer,
+  settingsReset: settingsResetReducer,
+  serverInfoGet: serverInfoGetReducer,
+  dbInfoGet: dbInfoGetReducer,
 });
 
 const userInfoFromStorage = localStorage.getItem('userInfo')

@@ -3,7 +3,7 @@ import store from '../store'; // Import your Redux store
 import { logout } from '../actions/userActions';
 
 const api = axios.create({
-  baseURL: 'https://money-manager-backend-iczs.onrender.com/api',
+  baseURL: 'http://localhost:7000/api',
 });
 
 // Add a request interceptor to include the auth token
@@ -32,6 +32,16 @@ api.interceptors.response.use(
       // Redirect to login page
       window.location.href = '/login';
     }
+    // Server error (5xx)
+    else if (response && response.status >= 500) {
+      alert('Server error occurred. Please try again later.');
+    }
+
+    // Network error (no response)
+    else if (!response) {
+      alert('Network error. Please check your internet connection or try again later.');
+    }
+
     return Promise.reject(error);
   }
 );
