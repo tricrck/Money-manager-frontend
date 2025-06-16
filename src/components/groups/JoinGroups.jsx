@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   listMyInvitations,
   getMyJoinRequests,
-  respondToInvitation,
+  reviewJoinRequest,
 } from '../../actions/groupActions';
 import {
   Card,
@@ -34,7 +34,7 @@ const JoinGroups = () => {
   }, [dispatch]);
 
   const handleResponse = (groupId, invitationId, response) => {
-    dispatch(respondToInvitation(groupId, invitationId, { response }));
+    dispatch(reviewJoinRequest(groupId, invitationId, { response }));
   };
 
   return (

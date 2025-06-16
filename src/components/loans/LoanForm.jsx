@@ -345,7 +345,9 @@ const PartiesStep = memo(({
   errors,
   addGuarantor,
   updateGuarantor,
-  removeGuarantor
+  removeGuarantor,
+  isAdmin,
+  userInfo
 }) => (
   <Card>
     <CardHeader>
@@ -358,24 +360,38 @@ const PartiesStep = memo(({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="user">Borrower *</Label>
-          <Select value={formData.user} onValueChange={(value) => handleChange({ target: { name: 'user', value } })}>
-            <SelectTrigger className={errors.user ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select borrower" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((user) => (
-                <SelectItem key={user._id} value={user._id}>
-                  {user.name} ({user.email})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.user && (
-            <p className="text-sm text-red-500 flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              {errors.user}
-            </p>
-          )}
+            {isAdmin ? (
+              <Select
+                value={formData.user}
+                onValueChange={(value) =>
+                  handleChange({ target: { name: "user", value } })
+                }
+              >
+                <SelectTrigger className={errors.user ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Select borrower" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user._id} value={user._id}>
+                      {user.name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type="text"
+                value={userInfo.user.name}
+                disabled
+                className="bg-gray-100"
+              />
+            )}
+            {errors.user && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.user}
+              </p>
+            )}
         </div>
 
         {formData.loanType === 'group' && (
@@ -653,20 +669,26 @@ const LoanForm = () => {
   const { loading: loadingUpdate, error: errorUpdate, success: successUpdate } = useSelector((state) => state.loanUpdate);
   const { loading: loadingUsers, users = [] } = useSelector((state) => state.userList);
   const { loading: loadingGroups, groups = [] } = useSelector((state) => state.groupList);
+  const userLogin = useSelector((state) => state.userLogin)
+  const { userInfo } = userLogin
 
   const isEditMode = Boolean(id);
   const loading = loadingCreate || loadingUpdate || loadingDetails;
   const error = errorCreate || errorUpdate || errorDetails;
+  const isAdmin = userInfo?.user?.role === "Admin";
 
   // Load initial data
   useEffect(() => {
-    dispatch(listUsers());
-    dispatch(listGroups());
-
     if (isEditMode) {
       dispatch(getLoanDetails(id));
     }
-  }, [dispatch, id, isEditMode]);
+    if (!isAdmin && userInfo?.user?._id) {
+      handleChange({ target: { name: "user", value: userInfo.user._id } });
+    } else {
+      dispatch(listUsers());
+      dispatch(listGroups());
+    }
+  }, [dispatch, id, isEditMode, isAdmin, userInfo]);
 
   // Set form values when loan details are loaded
   useEffect(() => {
@@ -1017,6 +1039,8 @@ const renderStepContent = () => {
           addGuarantor={addGuarantor}
           updateGuarantor={updateGuarantor}
           removeGuarantor={removeGuarantor}
+          isAdmin={isAdmin}
+          userInfo={userInfo}
         />
       );
     case 4:

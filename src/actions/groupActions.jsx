@@ -86,6 +86,7 @@ import {
   export const createGroup = (groupData) => async (dispatch) => {
     try {
       dispatch({ type: GROUP_CREATE_REQUEST });
+      console.log(groupData)
   
       const { data } = await api.createGroup(groupData);
   
@@ -94,12 +95,17 @@ import {
         payload: data,
       });
     } catch (error) {
+      let message;
+
+      if (error.response?.data?.errors?.length) {
+        // Collect all error messages into one string
+        message = error.response.data.errors.map(err => `${err.path}: ${err.msg}`).join(', ');
+      } else {
+        message = error.response?.data?.message || error.message;
+      }
       dispatch({
         type: GROUP_CREATE_FAIL,
-        payload:
-          error.response && error.response.data.message
-            ? error.response.data.message
-            : error.message,
+        payload: message,
       });
     }
   };

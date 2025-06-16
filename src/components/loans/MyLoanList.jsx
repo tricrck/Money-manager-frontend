@@ -38,6 +38,8 @@ const MyLoansList = ({ history }) => {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 
+  const isAdmin = userInfo?.user?.role === "Admin";
+
   useEffect(() => {
     if (userInfo) {
       dispatch(getUserLoans(userInfo?.user?._id));
@@ -150,10 +152,11 @@ const MyLoansList = ({ history }) => {
           <h1 className="text-3xl font-bold text-gray-900">My Loans</h1>
           <p className="text-gray-600 mt-1">Manage and track your loan applications</p>
         </div>
+        { isAdmin && (
         <Button onClick={() => navigate('/loans/create')} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Apply for New Loan
-        </Button>
+        </Button>)}
       </div>
 
       {/* Stats Cards */}
@@ -292,15 +295,6 @@ const MyLoansList = ({ history }) => {
                   : 'Get started by applying for your first loan'
                 }
               </p>
-              {!searchTerm && filterStatus === 'all' && filterType === 'all' && (
-                <Button 
-                  onClick={() => navigate('/apply-loan')} 
-                  className="mt-4"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Apply for Loan
-                </Button>
-              )}
             </div>
           ) : (
             <>

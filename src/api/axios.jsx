@@ -22,14 +22,17 @@ api.interceptors.response.use(
   (response) => response,
   // Error handler - check for 401 and logout if needed
   (error) => {
-    if (error.response && error.response.status === 401) {
+
+    const response = error.response;
+
+    if (response && response.status === 401) {
       console.log('Session expired - logging out');
       
       // Dispatch logout action
       store.dispatch(logout(true)); // Pass true to indicate session expired
       
       // Redirect to login page
-      window.location.href = '/login';
+      window.location.href = '/home';
     }
     // Server error (5xx)
     else if (response && response.status >= 500) {

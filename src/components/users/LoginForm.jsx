@@ -343,7 +343,7 @@ const LoginForm = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/forgot-password')}
-                  disabled={isSubmitting || isLockedOut}
+                  disabled={loggingIn || isLockedOut}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 underline decoration-2 underline-offset-2"
                 >
                   Forgot password?
@@ -354,10 +354,10 @@ const LoginForm = () => {
               <Button
                 type="submit"
                 onClick={handleSubmit}
-                disabled={isSubmitting || isLockedOut}
+                disabled={loggingIn || isLockedOut}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? (
+                {loggingIn ? (
                   <div className="flex items-center justify-center space-x-2">
                     <Loader2 className="h-5 w-5 animate-spin" />
                     <span>Signing in...</span>

@@ -93,16 +93,22 @@ import { formatCurrency } from '@/lib/utils';
                   Chama
                 </div>
               </SelectItem>
-              <SelectItem value="investment">
+              <SelectItem value="sacco">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Sacco  
+                </div>
+              </SelectItem>
+              <SelectItem value="table_banking">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Table Banking  
+                </div>
+              </SelectItem>
+              <SelectItem value="investment_club">
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
                   Investment Club  
-                </div>
-              </SelectItem>
-              <SelectItem value="savings">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Savings Group
                 </div>
               </SelectItem>
             </SelectContent>
