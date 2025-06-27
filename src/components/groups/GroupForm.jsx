@@ -21,7 +21,13 @@ import {
   Target,
   Shield,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Lock,
+  Globe,
+  UserPlus,
+  Banknote,
+  TableProperties,
+  LineChart
 } from 'lucide-react';
 import { 
   Card, 
@@ -53,7 +59,7 @@ import { formatCurrency } from '@/lib/utils';
 
 
  // Step 1: Basic Information
-  const BasicInfoStep = memo(({ name, setName, nameError, groupType, setGroupType, description, setDescription }) => (
+  const BasicInfoStep = memo(({ name, setName, nameError, groupType, setGroupType, privacy, setprivacy, description, setDescription }) => (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -95,20 +101,49 @@ import { formatCurrency } from '@/lib/utils';
               </SelectItem>
               <SelectItem value="sacco">
                 <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
+                  <Banknote className="h-4 w-4" />
                   Sacco  
                 </div>
               </SelectItem>
               <SelectItem value="table_banking">
                 <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
+                  <TableProperties className="h-4 w-4" />
                   Table Banking  
                 </div>
               </SelectItem>
               <SelectItem value="investment_club">
                 <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
+                  <LineChart className="h-4 w-4" />
                   Investment Club  
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="privacy">Privacy</Label>
+          <Select value={privacy} onValueChange={setprivacy}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="private">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Private
+                </div>
+              </SelectItem>
+              <SelectItem value="public">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Public  
+                </div>
+              </SelectItem>
+               <SelectItem value="invite-only">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Invite Only
                 </div>
               </SelectItem>
             </SelectContent>
@@ -399,7 +434,7 @@ import { formatCurrency } from '@/lib/utils';
   ));
 
   // Step 5: Review & Submit
-  const ReviewStep = memo(({ name, groupType, description, settings, formatCurrency }) => (
+  const ReviewStep = memo(({ name, groupType, privacy, description, settings, formatCurrency }) => (
     <div className="space-y-6">
       <Card>
         <CardHeader>
@@ -423,6 +458,10 @@ import { formatCurrency } from '@/lib/utils';
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Type:</span>
                 <Badge variant="outline">{groupType}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Privacy:</span>
+                <Badge variant="outline">{privacy}</Badge>
               </div>
               {description && (
                 <div className="flex justify-between">
@@ -529,6 +568,7 @@ const GroupForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState('');
   const [groupType, setGroupType] = useState('chama');
+  const [privacy, setprivacy] = useState('private');
   const [description, setDescription] = useState('');
   const [settings, setSettings] = useState({
     contributionSchedule: {
@@ -600,6 +640,7 @@ const GroupForm = () => {
     const groupData = {
       name,
       groupType,
+      privacy,
       description,
       settings,
     };
@@ -704,7 +745,7 @@ const GroupForm = () => {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfoStep name={name} setName={setName} nameError={errors.name} groupType={groupType} setGroupType={setGroupType} description={description} setDescription={setDescription} />;
+        return <BasicInfoStep name={name} setName={setName} nameError={errors.name} groupType={groupType} setGroupType={setGroupType} privacy={privacy} setprivacy={setprivacy} description={description} setDescription={setDescription} />;
       case 2:
         return <ContributionStep settings={settings} handleContributionChange={handleContributionChange} errors={errors} formatCurrency={formatCurrency} />;
       case 3:
@@ -712,9 +753,9 @@ const GroupForm = () => {
       case 4:
         return <MeetingScheduleStep settings={settings} handleMeetingScheduleChange={handleMeetingScheduleChange} />;
       case 5:
-        return <ReviewStep name={name} groupType={groupType} description={description} settings={settings} formatCurrency={formatCurrency} />;
+        return <ReviewStep name={name} groupType={groupType} privacy={privacy} setprivacy={setprivacy} description={description} settings={settings} formatCurrency={formatCurrency} />;
       default:
-        return <BasicInfoStep name={name} setName={setName} errors={errors} groupType={groupType} setGroupType={setGroupType} description={description} setDescription={setDescription} />;
+        return <BasicInfoStep name={name} setName={setName} errors={errors} groupType={groupType} setGroupType={setGroupType} privacy={privacy} setprivacy={setprivacy} description={description} setDescription={setDescription} />;
     }
   };
 

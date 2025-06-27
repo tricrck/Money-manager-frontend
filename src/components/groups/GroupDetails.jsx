@@ -85,12 +85,14 @@ import { getGroupDetails, reviewJoinRequest, getJoinRequests } from '../../actio
 import GroupSettingsEditor from './GroupSettingsEditor';
 import GroupMembers from './GroupMembers';
 import { formatCurrency } from '@/lib/utils'
+import GroupFund from './GroupFund';
 
 const GroupDetails = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [showSettingsEditor, setShowSettingsEditor] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [showFundModal, setShowFundModal] = useState(false);
   const [memberModalRef, setMemberModalRef] = useState(null);
   const { id } = useParams();
 
@@ -117,12 +119,15 @@ const GroupDetails = () => {
 
   const groupDetails = useSelector((state) => state.groupDetails);
   const { loading, error, group } = groupDetails;
+
+  const groupReviewJoinRequest = useSelector((state) => state.groupReviewJoinRequest);
+  const { loading: joinRequestloading, error: joinRequesterror, joinRequest, success: joinRequestsuccess } = groupReviewJoinRequest;
   
   const { joinRequests = [], loading: loadingRequests, error: errorRequests } = useSelector(
       (state) => state.groupGetJoinRequests || {}
     );
 
-  console.log(joinRequests)
+  console.log("Test approval", joinRequestloading, joinRequesterror, joinRequest, joinRequestsuccess)
 
   // Check if current user is admin
   const isAdmin = group?.admins?.some(admin => admin._id === userInfo?.user?._id);
@@ -289,12 +294,12 @@ const GroupDetails = () => {
   const prepareMemberContributionData = () => {
     if (!group?.members) return [];
     
-    return group.members
+    return group?.members
       .map(member => ({
-        name: member.user.name.length > 15 ? 
-          member.user.name.substring(0, 15) + '...' : 
-          member.user.name,
-        contributions: member.contributions?.total || 0
+        name: member?.user?.name.length > 15 ? 
+          member?.user?.name.substring(0, 15) + '...' : 
+          member?.user?.name,
+        contributions: member?.contributions?.total || 0
       }))
       .sort((a, b) => b.contributions - a.contributions)
       .slice(0, 8);
@@ -330,13 +335,16 @@ const GroupDetails = () => {
           <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(stats.totalBalance)}</div>
-          <p className="text-xs text-muted-foreground">
-            Across all accounts
-          </p>
+        <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="text-2xl font-bold">{formatCurrency(stats.totalBalance)}
+          <p className="text-xs text-muted-foreground">Across all accounts</p></div>
+
+          <Button onClick={() => setShowFundModal(true)} className="bg-emerald-500 hover:bg-emerald-600">
+            <Plus className="h-4 w-4 mr-2" /> Add Funds
+          </Button>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -611,17 +619,17 @@ const GroupDetails = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredMembers.map((member) => (
+              {filteredMembers?.map((member) => (
                 <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <Avatar>
                       <AvatarFallback>
-                        {member.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {member.user?.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{member.user.name}</div>
-                      <div className="text-sm text-muted-foreground">{member.user.email}</div>
+                      <div className="font-medium">{member.user?.name}</div>
+                      <div className="text-sm text-muted-foreground">{member.user?.email}</div>
                       <div className="text-xs text-muted-foreground">
                         Joined {formatDate(member.joinedDate)}
                       </div>
@@ -647,7 +655,7 @@ const GroupDetails = () => {
                     </div>
                     
                     {/* Add action buttons for admins */}
-                    {(isAdmin || isOwner) && member.user._id !== userInfo?.user?._id && (
+                    {(isAdmin || isOwner) && member.user?._id !== userInfo?.user?._id && (
                       <div className="flex items-center gap-1">
                         <Button
                           size="sm"
@@ -668,7 +676,7 @@ const GroupDetails = () => {
                     )}
                     
                     {/* Leave button for current user */}
-                    {member.user._id === userInfo?.user?._id && !isOwner && (
+                    {member.user?._id === userInfo?.user?._id && !isOwner && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -786,7 +794,7 @@ const GroupDetails = () => {
                   ) : (
                     filteredTransactions.map((transaction) => {
                       const PaymentIcon = getPaymentMethodIcon(transaction.method);
-                      const member = group.members.find(m => m.user._id === transaction.member);
+                      const member = group.members.find(m => m.user?._id === transaction.member);
                       
                       return (
                         <TableRow key={transaction._id}>
@@ -805,7 +813,7 @@ const GroupDetails = () => {
                                   {member?.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-sm">{member?.user.name}</span>
+                              <span className="text-sm">{member?.user?.name}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -967,11 +975,11 @@ const GroupDetails = () => {
               {/* Actions */}
               <div className="flex items-center justify-end gap-3">
                 <button
-                  disabled={decisionLoading === req._id}
-                  onClick={() => handleDecision(req._id, 'reject')}
+                  disabled={decisionLoading === req.requestedBy._id}
+                  onClick={() => handleDecision(req.requestedBy._id, 'reject')}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
                 >
-                  {decisionLoading === req._id ? (
+                  {decisionLoading === req.requestedBy._id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <X className="w-4 h-4" />
@@ -980,11 +988,11 @@ const GroupDetails = () => {
                 </button>
                 
                 <button
-                  disabled={decisionLoading === req._id}
-                  onClick={() => handleDecision(req._id, 'approve')}
+                  disabled={decisionLoading === req.requestedBy._id}
+                  onClick={() => handleDecision(req.requestedBy._id, 'approve')}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition-all duration-150"
                 >
-                  {decisionLoading === req._id ? (
+                  {decisionLoading === req.requestedBy._id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Check className="w-4 h-4" />
@@ -1085,6 +1093,15 @@ const GroupDetails = () => {
               onSave={(updatedSettings) => {
                 dispatch(getGroupDetails(group._id));
               }}
+            />
+
+            <GroupFund
+              isOpen={showFundModal}
+              onClose={() => setShowFundModal(false)}
+              groupId={group._id}
+              currentUser={userInfo?.user}
+              isAdmin={isAdmin}
+              isTreasurer={currentMember?.role === 'treasurer'}
             />
     </div>
   );

@@ -470,10 +470,6 @@ const UserList = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => navigate('/users/create')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
         </div>
       </div>
 

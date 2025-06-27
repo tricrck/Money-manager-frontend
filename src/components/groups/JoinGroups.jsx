@@ -47,7 +47,7 @@ const JoinGroups = () => {
         <p className="text-muted-foreground">Manage your invitations and join requests</p>
       </div>
 
-      <Tabs defaultValue="invitations">
+      <Tabs defaultValue="discover">
         <TabsList className="mb-4">
           <TabsTrigger value="discover">Discover Groups</TabsTrigger>
           <TabsTrigger value="invitations">Invitations</TabsTrigger>

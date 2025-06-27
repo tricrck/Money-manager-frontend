@@ -84,7 +84,7 @@ const GroupList = () => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-  
+  console.log(myGroupsList)
 
   useEffect(() => {
     if (userInfo) {
@@ -405,6 +405,7 @@ const GroupList = () => {
       {processedGroups.map((group) => {
         const myMembership = group.members?.find(member => member.user === userInfo?.user?._id);
         const myContributions = myMembership?.contributions?.total || 0;
+        const pendingJoinRequests = group.joinRequests?.filter(r => r.status === 'pending').length || 0;
         const groupStatus = getGroupStatus(group);
         
         return (
@@ -466,6 +467,18 @@ const GroupList = () => {
                     <p className="text-muted-foreground">My Role</p>
                     <Badge variant="outline" className="text-xs">
                       {myMembership?.role || 'Member'}
+                    </Badge>
+                  </div>
+                </div>
+                 <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Privacy</p>
+                    <p className="font-semibold text-blue-600">{group?.privacy || 'Private'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Pending Join requests</p>
+                    <Badge variant="outline" className="text-xs">
+                      {pendingJoinRequests}
                     </Badge>
                   </div>
                 </div>
@@ -563,6 +576,7 @@ const GroupList = () => {
                   const myMembership = group.members?.find(member => member.user === userInfo?._id);
                   const myContributions = myMembership?.contributions?.total || 0;
                   const groupStatus = getGroupStatus(group);
+                  
                   
                   return (
                     <TableRow key={group._id} className="hover:bg-muted/50">

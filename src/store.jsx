@@ -8,6 +8,7 @@ import {
   userDetailsReducer,
   userUpdateReducer,
   userDeleteReducer,
+  userProfilePictureUploadReducer,
 } from './reducers/userReducers';
 import {
   loanCreateReducer,
@@ -25,7 +26,9 @@ import {
   groupLoansListReducer,
   loanApplyReducer,
   loanAddGuarantorReducer,
-  loanGuarantorApprovalReducer
+  loanGuarantorApprovalReducer,
+  loanDocumentUploadReducer,
+  loanDocumentRemoveReducer,
 } from './reducers/loanReducers';
 import {
   groupCreateReducer,
@@ -93,6 +96,8 @@ const reducer = combineReducers({
   userDetails: userDetailsReducer,
   userUpdate: userUpdateReducer,
   userDelete: userDeleteReducer,
+  userProfilePictureUpload: userProfilePictureUploadReducer,
+  
 
   loanCreate: loanCreateReducer,
   loanList: loanListReducer,
@@ -110,6 +115,8 @@ const reducer = combineReducers({
   loanApply: loanApplyReducer,
   loanAddGuarantor: loanAddGuarantorReducer,
   loanGuarantorApproval: loanGuarantorApprovalReducer,
+  loanDocumentUpload: loanDocumentUploadReducer,
+  loanDocumentRemove: loanDocumentRemoveReducer,
 
   groupCreate: groupCreateReducer,
   groupList: groupListReducer,

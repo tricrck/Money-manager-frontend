@@ -3,6 +3,8 @@ import api from './axios';
 export const createLoan = (loanData) => api.post('/loans', loanData);
 export const getLoans = () => api.get('/loans');
 export const getLoan = (loanId) => api.get(`/loans/${loanId}`);
+export const uploadCollateralDocuments = (loanId, formData) => api.post(`/loans/upload-collateral/${loanId}`, formData);
+export const removeCollateralDocument = (loanId, docUrl) => api.delete(`/loans/remove-collateral/${loanId}`, { data: { docUrl } });
 export const updateLoan = (loanId, loanData) => api.put(`/loans/${loanId}`, loanData);
 export const deleteLoan = (loanId) => api.delete(`/loans/${loanId}`);
 export const reviewLoan = (loanId, reviewData) => api.post(`/loans/${loanId}/review`, reviewData);

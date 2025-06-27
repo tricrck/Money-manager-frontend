@@ -47,14 +47,20 @@ import {
   LOAN_GUARANTOR_APPROVAL_REQUEST,
   LOAN_GUARANTOR_APPROVAL_SUCCESS,
   LOAN_GUARANTOR_APPROVAL_FAIL,
+  LOAN_GUARANTOR_APPROVAL_RESET,
+  LOAN_DOCUMENT_UPLOAD_REQUEST,
+  LOAN_DOCUMENT_UPLOAD_SUCCESS,
+  LOAN_DOCUMENT_UPLOAD_FAIL,
+  LOAN_DOCUMENT_UPLOAD_RESET,
+  LOAN_DOCUMENT_REMOVE_REQUEST,
+  LOAN_DOCUMENT_REMOVE_SUCCESS,
+  LOAN_DOCUMENT_REMOVE_FAIL,
 } from '../constants/loanConstants';
 import * as api from '../api/loans';
 
 export const createLoan = (loanData) => async (dispatch) => {
   try {
     dispatch({ type: LOAN_CREATE_REQUEST });
-
-    console.log('Creating loan with data:', loanData);
 
     const { data } = await api.createLoan(loanData);
 
@@ -63,8 +69,51 @@ export const createLoan = (loanData) => async (dispatch) => {
       payload: data,
     });
   } catch (error) {
+    console.error('Error creating loan:', error);
     dispatch({
       type: LOAN_CREATE_FAIL,
+      payload:
+        error.response && error.response.data.error
+          ? error.response.data.error
+          : error.error,
+    });
+  }
+};
+
+export const uploadCollateralDocuments = (loanId, formData) => async (dispatch) => {
+  try {
+    dispatch({ type: LOAN_DOCUMENT_UPLOAD_REQUEST });
+
+    const { data } = await api.uploadCollateralDocuments(loanId, formData);
+
+    dispatch({
+      type: LOAN_DOCUMENT_UPLOAD_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: LOAN_DOCUMENT_UPLOAD_FAIL,
+      payload:
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message,
+    });
+  }
+};
+
+export const removeCollateralDocument = (loanId, docUrl) => async (dispatch) => {
+  try {
+    dispatch({ type: LOAN_DOCUMENT_REMOVE_REQUEST });
+
+    const { data } = await api.removeCollateralDocument(loanId, docUrl);
+
+    dispatch({
+      type: LOAN_DOCUMENT_REMOVE_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: LOAN_DOCUMENT_REMOVE_FAIL,
       payload:
         error.response && error.response.data.message
           ? error.response.data.message
@@ -115,11 +164,11 @@ export const getLoanDetails = (id) => async (dispatch) => {
   }
 };
 
-export const updateLoan = (loan) => async (dispatch) => {
+export const updateLoan = (id, submitData) => async (dispatch) => {
   try {
     dispatch({ type: LOAN_UPDATE_REQUEST });
 
-    const { data } = await api.updateLoan(loan._id, loan);
+    const { data } = await api.updateLoan(id, submitData);
 
     dispatch({
       type: LOAN_UPDATE_SUCCESS,

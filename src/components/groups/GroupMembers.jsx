@@ -31,19 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   UserPlus,
@@ -61,19 +52,35 @@ import {
   Clock,
   X,
   Check,
-  ChevronsUpDown,
   Users,
   UserCheck,
   UserX,
-  Edit3
+  Edit3,
+  Send,
+  Copy,
+  Link,
+  MessageSquare,
+  Loader2,
+  Plus,
+  MoreHorizontal,
+  Sparkles
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import {
   getGroupDetails,
   addGroupMembers,
   updateGroupMember,
   removeGroupMember,
-  leaveGroup
+  leaveGroup,
+  inviteUser
 } from '../../actions/groupActions';
 import { listUsers } from '../../actions/userActions';
 
@@ -88,12 +95,12 @@ const GroupMembers = forwardRef(({
 }, ref) => {
   const dispatch = useDispatch();
 
-  
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   
   // Form states
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -102,7 +109,10 @@ const GroupMembers = forwardRef(({
   const [memberStatus, setMemberStatus] = useState('active');
   const [searchTerm, setSearchTerm] = useState('');
   const [emailSearch, setEmailSearch] = useState('');
-  const [open, setOpen] = useState(false);
+  const [usernameSearch, setUsernameSearch] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('invite');
+  const [loadingUserId, setLoadingUserId] = useState(null);
 
   // Redux selectors
   const userList = useSelector((state) => state.userList);
@@ -117,24 +127,28 @@ const GroupMembers = forwardRef(({
   const groupRemoveMember = useSelector((state) => state.groupRemoveMember);
   const { loading: loadingRemove, error: errorRemove, success: successRemove } = groupRemoveMember || {};
 
+  const groupInviteUser = useSelector((state) => state.groupInviteUser);
+  const { loading: loadingInvite, error: errorInvite, success: successInvite } = groupInviteUser || {};
+
   useEffect(() => {
-    if (showAddModal) {
+    if (showAddModal || showInviteModal) {
       dispatch(listUsers());
     }
-  }, [dispatch, showAddModal]);
+  }, [dispatch, showAddModal, showInviteModal]);
 
-  // Handle open actions
+  // Reset form states when modals close
   useEffect(() => {
-    if(!showAddModal && !showEditModal && !showRemoveDialog && !showLeaveDialog) {
+    if (!showAddModal && !showEditModal && !showRemoveDialog && !showLeaveDialog && !showInviteModal) {
       setSelectedUsers([]);
       setSelectedMember(null);
       setMemberRole('member');
       setMemberStatus('active');
       setSearchTerm('');
       setEmailSearch('');
-      setOpen(false);
+      setUsernameSearch('');
+      setInviteMessage('');
     }
-  }, [showAddModal, showEditModal, showRemoveDialog, showLeaveDialog]);
+  }, [showAddModal, showEditModal, showRemoveDialog, showLeaveDialog, showInviteModal]);
 
   // Handle successful actions
   useEffect(() => {
@@ -143,6 +157,7 @@ const GroupMembers = forwardRef(({
       setSelectedUsers([]);
       setEmailSearch('');
       setSearchTerm('');
+      setLoadingUserId(null)
       if (onMemberAdded) onMemberAdded();
     }
   }, [successAdd, onMemberAdded]);
@@ -165,6 +180,16 @@ const GroupMembers = forwardRef(({
     }
   }, [successRemove, onMemberAdded]);
 
+  useEffect(() => {
+    if (successInvite) {
+      setShowInviteModal(false);
+      setUsernameSearch('');
+      setInviteMessage('');
+      setMemberRole('member');
+      if (onMemberAdded) onMemberAdded();
+    }
+  }, [successInvite, onMemberAdded]);
+
   // Get available users (not already in group)
   const getAvailableUsers = () => {
     if (!users || !group) return [];
@@ -184,8 +209,19 @@ const GroupMembers = forwardRef(({
     );
   };
 
-  // Handle adding members
-  const handleAddMembers = () => {
+  // Handle adding members directly
+  const handleAddMember = (userId) => {
+    setLoadingUserId(userId);
+    const membersData = [{
+      userId,
+      role: 'member'
+    }];
+    
+    dispatch(addGroupMembers(group._id, membersData));
+  };
+
+  // Handle bulk add members
+  const handleBulkAddMembers = () => {
     if (selectedUsers.length === 0) return;
     
     const membersData = selectedUsers.map(userId => ({
@@ -194,7 +230,19 @@ const GroupMembers = forwardRef(({
     }));
     
     dispatch(addGroupMembers(group._id, membersData));
-    if (onClose) onClose();
+  };
+
+  // Handle invite user
+  const handleInviteUser = () => {
+    if (!usernameSearch.trim()) return;
+    
+    const inviteData = {
+      username: usernameSearch.trim(),
+      role: memberRole,
+      message: inviteMessage.trim()
+    };
+    
+    dispatch(inviteUser(group._id, inviteData));
   };
 
   // Handle updating member
@@ -208,7 +256,6 @@ const GroupMembers = forwardRef(({
       role: memberRole,
       status: memberStatus
     }));
-    if (onClose) onClose();
   };
 
   // Handle removing member
@@ -219,7 +266,6 @@ const GroupMembers = forwardRef(({
     if (!userId) return;
     
     dispatch(removeGroupMember(group._id, userId));
-    if (onClose) onClose();
   };
 
   // Handle leave group
@@ -229,80 +275,33 @@ const GroupMembers = forwardRef(({
     if (onClose) onClose();
   };
 
-  // Get role badge
-  const getRoleBadge = (role) => {
+  // Get role configuration
+  const getRoleConfig = (role) => {
     const roleConfig = {
-      owner: { color: 'bg-purple-100 text-purple-800', icon: Crown },
-      admin: { color: 'bg-blue-100 text-blue-800', icon: Shield },
-      treasurer: { color: 'bg-green-100 text-green-800', icon: Settings },
-      member: { color: 'bg-gray-100 text-gray-800', icon: Users }
+      owner: { color: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white', icon: Crown, label: 'Owner' },
+      admin: { color: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white', icon: Shield, label: 'Admin' },
+      treasurer: { color: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white', icon: Settings, label: 'Treasurer' },
+      member: { color: 'bg-gradient-to-r from-gray-500 to-slate-500 text-white', icon: Users, label: 'Member' }
     };
-    
-    const config = roleConfig[role] || roleConfig.member;
-    const IconComponent = config.icon;
-    
-    return (
-      <Badge className={`${config.color} border-0`}>
-        <IconComponent className="w-3 h-3 mr-1" />
-        {role?.charAt(0).toUpperCase() + role?.slice(1)}
-      </Badge>
-    );
+    return roleConfig[role] || roleConfig.member;
   };
 
-  // Get status badge
-  const getStatusBadge = (status) => {
+  // Get status configuration
+  const getStatusConfig = (status) => {
     const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      inactive: { color: 'bg-gray-100 text-gray-800', icon: UserX },
-      suspended: { color: 'bg-red-100 text-red-800', icon: AlertCircle }
+      active: { color: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
+      pending: { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Clock },
+      inactive: { color: 'bg-gray-50 text-gray-700 border-gray-200', icon: UserX },
+      suspended: { color: 'bg-red-50 text-red-700 border-red-200', icon: AlertCircle }
     };
-    
-    const config = statusConfig[status] || statusConfig.active;
-    const IconComponent = config.icon;
-    
-    return (
-      <Badge className={`${config.color} border-0`}>
-        <IconComponent className="w-3 h-3 mr-1" />
-        {status?.charAt(0).toUpperCase() + status?.slice(1)}
-      </Badge>
-    );
+    return statusConfig[status] || statusConfig.active;
   };
 
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-KE', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return 'Invalid Date';
-    }
-  };
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    try {
-      return new Intl.NumberFormat('en-KE', {
-        style: 'currency',
-        currency: 'KES',
-        minimumFractionDigits: 0
-      }).format(amount || 0);
-    } catch (error) {
-      return 'KES 0';
-    }
-  };
-
-  // Get user display name safely
   const getUserDisplayName = (user) => {
     if (!user) return 'Unknown User';
     return user.name || user.email || 'Unknown User';
   };
 
-  // Get user initials safely
   const getUserInitials = (user) => {
     if (!user || !user.name) return 'UN';
     return user.name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -310,6 +309,7 @@ const GroupMembers = forwardRef(({
 
   useImperativeHandle(ref, () => ({
     openAddModal: () => setShowAddModal(true),
+    openInviteModal: () => setShowInviteModal(true),
     openEditModal: (member) => {
       setSelectedMember(member);
       setMemberRole(member.role || 'member');
@@ -327,134 +327,53 @@ const GroupMembers = forwardRef(({
 
   return (
     <>
-      {/* Add Members Modal */}
+      {/* Enhanced Add/Invite Members Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                <UserPlus className="h-5 w-5 text-white" />
+              </div>
               Add Members to {group.name}
             </DialogTitle>
-            <DialogDescription>
-              Search and select users to add to this group.
+            <DialogDescription className="text-muted-foreground">
+              Add existing users or invite new members to join your group.
             </DialogDescription>
           </DialogHeader>
 
-          {errorAdd && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errorAdd}</AlertDescription>
-            </Alert>
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="invite" className="flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Invite New
+              </TabsTrigger>
+              <TabsTrigger value="add" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Add Existing
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="space-y-4">
-            {/* Email Search */}
-            <div className="space-y-2">
-              <Label htmlFor="email-search">Search by Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email-search"
-                  placeholder="Enter email address..."
-                  value={emailSearch}
-                  onChange={(e) => setEmailSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+            <TabsContent value="invite" className="space-y-4">
+              {errorInvite && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">{errorInvite}</AlertDescription>
+                </Alert>
+              )}
 
-            {/* User Selection */}
-            <div className="space-y-2">
-              <Label>Available Users</Label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-full justify-between"
-                  >
-                    {selectedUsers.length > 0
-                      ? `${selectedUsers.length} user(s) selected`
-                      : "Select users..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput 
-                      placeholder="Search users..." 
-                      value={searchTerm}
-                      onValueChange={setSearchTerm}
-                    />
-                    <CommandEmpty>No users found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandList>
-                        {getFilteredUsers().map((user) => (
-                          <CommandItem
-                            key={user._id}
-                            onSelect={() => {
-                              setSelectedUsers(prev =>
-                                prev.includes(user._id)
-                                  ? prev.filter(id => id !== user._id)
-                                  : [...prev, user._id]
-                              );
-                            }}
-                          >
-                            <div className="flex items-center space-x-2 flex-1">
-                              <Checkbox
-                                checked={selectedUsers.includes(user._id)}
-                                readOnly
-                              />
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {getUserInitials(user)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium text-sm">{getUserDisplayName(user)}</div>
-                                <div className="text-xs text-muted-foreground">{user.email}</div>
-                              </div>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandList>
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="member-role">Role</Label>
-              <Select value={memberRole} onValueChange={setMemberRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  {(isOwner || isAdmin) && (
-                    <>
-                      <SelectItem value="treasurer">Treasurer</SelectItem>
-                      {isOwner && <SelectItem value="admin">Admin</SelectItem>}
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Selected Users Preview */}
-            {selectedUsers.length > 0 && (
               <div className="space-y-2">
-                <Label>Selected Users ({selectedUsers.length})</Label>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {selectedUsers.map(userId => {
-                    const user = users.find(u => u._id === userId);
-                    if (!user) return null;
-                    
-                    return (
-                      <div key={userId} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                <Label>Select User to Invite</Label>
+                <Select
+                  value={usernameSearch}
+                  onValueChange={(value) => setUsernameSearch(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a user..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableUsers().filter((user) => !!user?.username).map((user) => (
+                      <SelectItem key={user._id} value={user.username || user.email}>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
                             <AvatarFallback className="text-xs">
@@ -463,110 +382,253 @@ const GroupMembers = forwardRef(({
                           </Avatar>
                           <div>
                             <div className="font-medium text-sm">{getUserDisplayName(user)}</div>
-                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                            <div className="text-xs text-muted-foreground">{user.username || user.email}</div>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedUsers(prev => prev.filter(id => id !== userId))}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invite-role">Role</Label>
+                  <Select value={memberRole} onValueChange={setMemberRole}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      {(isOwner || isAdmin) && (
+                        <>
+                          <SelectItem value="treasurer">Treasurer</SelectItem>
+                          {isOwner && <SelectItem value="admin">Admin</SelectItem>}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invite-message">Invitation Message (Optional)</Label>
+                  <Textarea
+                    id="invite-message"
+                    placeholder="Add a personal message to your invitation..."
+                    value={inviteMessage}
+                    onChange={(e) => setInviteMessage(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleInviteUser} 
+                  disabled={loadingInvite || !usernameSearch.trim()}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  {loadingInvite ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Send Invitation
+                </Button>
+            </TabsContent>
+            <TabsContent value="add" className="space-y-4">
+              {errorAdd && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">{errorAdd}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Users List */}
+              <ScrollArea className="h-64 w-full rounded-md border">
+                <div className="p-2 space-y-1">
+                  {getFilteredUsers().map((user) => (
+                    <div
+                      key={user._id}
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                            {getUserInitials(user)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{getUserDisplayName(user)}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddMember(user._id)}
+                        disabled={loadingUserId === user._id}
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                      >
+                        {loadingUserId === user._id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                  {getFilteredUsers().length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No users found</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Bulk Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Bulk Selection ({selectedUsers.length} selected)</Label>
+                  <Select value={memberRole} onValueChange={setMemberRole}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      {(isOwner || isAdmin) && (
+                        <>
+                          <SelectItem value="treasurer">Treasurer</SelectItem>
+                          {isOwner && <SelectItem value="admin">Admin</SelectItem>}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedUsers.length > 0 && (
+                  <Button 
+                    onClick={handleBulkAddMembers} 
+                    disabled={loadingAdd}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                  >
+                    {loadingAdd ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
+                    Add {selectedUsers.length} Member{selectedUsers.length !== 1 ? 's' : ''}
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddMembers} 
-              disabled={loadingAdd || selectedUsers.length === 0}
-            >
-              {loadingAdd ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : (
-                <UserPlus className="h-4 w-4 mr-2" />
-              )}
-              Add {selectedUsers.length} Member{selectedUsers.length !== 1 ? 's' : ''}
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Modal */}
+      {/* Enhanced Edit Member Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit3 className="h-5 w-5" />
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg">
+                <Edit3 className="h-4 w-4 text-white" />
+              </div>
               Edit Member
             </DialogTitle>
             <DialogDescription>
-              Update member role and status.
+              Update member role and status for enhanced group management.
             </DialogDescription>
           </DialogHeader>
 
           {errorUpdate && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errorUpdate}</AlertDescription>
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">{errorUpdate}</AlertDescription>
             </Alert>
           )}
 
           {selectedMember && (
             <div className="space-y-4">
-              {/* Member Info */}
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
-                <Avatar>
-                  <AvatarFallback>
-                    {getUserInitials(selectedMember.user)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">{getUserDisplayName(selectedMember.user)}</div>
-                  <div className="text-sm text-muted-foreground">{selectedMember.user?.email}</div>
+              {/* Enhanced Member Info Card */}
+              <Card className="border-2 border-dashed border-muted">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                      {getUserInitials(selectedMember.user)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="font-medium">{getUserDisplayName(selectedMember.user)}</div>
+                    <div className="text-sm text-muted-foreground">{selectedMember.user?.email}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {(() => {
+                        const roleConfig = getRoleConfig(selectedMember.role);
+                        const statusConfig = getStatusConfig(selectedMember.status);
+                        return (
+                          <>
+                            <Badge className={`${roleConfig.color} border-0 text-xs`}>
+                              <roleConfig.icon className="w-3 h-3 mr-1" />
+                              {roleConfig.label}
+                            </Badge>
+                            <Badge className={`${statusConfig.color} text-xs`}>
+                              <statusConfig.icon className="w-3 h-3 mr-1" />
+                              {selectedMember.status?.charAt(0).toUpperCase() + selectedMember.status?.slice(1)}
+                            </Badge>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select value={memberRole} onValueChange={setMemberRole}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      {(isOwner || isAdmin) && (
+                        <>
+                          <SelectItem value="treasurer">Treasurer</SelectItem>
+                          {isOwner && <SelectItem value="admin">Admin</SelectItem>}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              {/* Role Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">Role</Label>
-                <Select value={memberRole} onValueChange={setMemberRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member</SelectItem>
-                    {(isOwner || isAdmin) && (
-                      <>
-                        <SelectItem value="treasurer">Treasurer</SelectItem>
-                        {isOwner && <SelectItem value="admin">Admin</SelectItem>}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Status Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select value={memberStatus} onValueChange={setMemberStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select value={memberStatus} onValueChange={setMemberStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
@@ -575,9 +637,13 @@ const GroupMembers = forwardRef(({
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateMember} disabled={loadingUpdate}>
+            <Button 
+              onClick={handleUpdateMember} 
+              disabled={loadingUpdate}
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+            >
               {loadingUpdate ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Check className="h-4 w-4 mr-2" />
               )}
@@ -587,28 +653,37 @@ const GroupMembers = forwardRef(({
         </DialogContent>
       </Dialog>
 
-      {/* Remove Member Dialog */}
+      {/* Enhanced Remove Member Dialog */}
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <UserMinus className="h-5 w-5 text-destructive" />
+              <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg">
+                <UserMinus className="h-4 w-4 text-white" />
+              </div>
               Remove Member
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove {getUserDisplayName(selectedMember?.user)} from this group?
-              This action cannot be undone.
+            <AlertDialogDescription className="text-left">
+              Are you sure you want to remove <strong>{getUserDisplayName(selectedMember?.user)}</strong> from this group?
+              <br />
+              <br />
+              This action will:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>Remove their access to group activities</li>
+                <li>Remove them from all group conversations</li>
+                <li>Cannot be undone</li>
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveMember}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white"
               disabled={loadingRemove}
             >
               {loadingRemove ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
@@ -618,25 +693,35 @@ const GroupMembers = forwardRef(({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Leave Group Dialog */}
+      {/* Enhanced Leave Group Dialog */}
       <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <UserMinus className="h-5 w-5 text-destructive" />
+              <div className="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg">
+                <UserMinus className="h-4 w-4 text-white" />
+              </div>
               Leave Group
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to leave {group.name}? You will lose access to all group 
-              activities and will need to be re-invited to rejoin.
+            <AlertDialogDescription className="text-left">
+              Are you sure you want to leave <strong>{group.name}</strong>?
+              <br />
+              <br />
+              This means you will:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>Lose access to all group activities</li>
+                <li>Need to be re-invited to rejoin</li>
+                <li>Miss future group updates</li>
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLeaveGroup}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
             >
+              <UserMinus className="h-4 w-4 mr-2" />
               Leave Group
             </AlertDialogAction>
           </AlertDialogFooter>

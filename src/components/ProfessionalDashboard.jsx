@@ -78,9 +78,100 @@ const ProfessionalDashboard = ({ children }) => {
 
   const myGroups = useSelector((state) => state.myGroups);
   const { loading: loadingMy, error: errorMy, myGroups: activeGroups = [] } = myGroups;
+
+  console.log(activeGroups)
   
   const userLoansList = useSelector((state) => state.userLoansList);
   const { loans: MyLoans } = userLoansList;
+
+  const upcomingLoanEvents = [];
+
+  const now = new Date();
+
+  MyLoans.forEach(loan => {
+    loan.repaymentSchedule.forEach(installment => {
+      if (!installment.paid && new Date(installment.dueDate) > now) {
+        upcomingLoanEvents.push({
+          loanId: loan._id,
+          group: loan.group?.name || 'Personal',
+          installmentNumber: installment.installmentNumber,
+          dueDate: new Date(installment.dueDate),
+          totalAmount: installment.totalAmount,
+          status: 'pending'
+        });
+      }
+    });
+  });
+
+  console.log("Upcoming Loan Payments:", upcomingLoanEvents);
+
+  const upcomingGroupEvents = [];
+
+  activeGroups.forEach(group => {
+    const groupName = group.name;
+    const now = new Date();
+    const next6Months = new Date();
+    next6Months.setMonth(now.getMonth() + 6);
+
+    // Contributions
+    const contributionSchedule = group.settings?.contributionSchedule;
+    if (contributionSchedule) {
+      const dueDay = contributionSchedule.dueDay;
+      let date = new Date(now);
+
+      for (let i = 0; i < 6; i++) {
+        date.setMonth(now.getMonth() + i);
+        date.setDate(dueDay);
+        if (date > now && date < next6Months) {
+          upcomingGroupEvents.push({
+            groupId: group._id,
+            group: groupName,
+            type: 'contribution',
+            dueDate: new Date(date),
+            amount: contributionSchedule.amount,
+            frequency: contributionSchedule.frequency
+          });
+        }
+      }
+    }
+
+    // Meetings
+    const meetingSchedule = group.settings?.meetingSchedule;
+    if (meetingSchedule) {
+      const dayOfMonth = meetingSchedule.dayOfMonth;
+      let date = new Date(now);
+
+      for (let i = 0; i < 6; i++) {
+        date.setMonth(now.getMonth() + i);
+        date.setDate(dayOfMonth);
+        const [hour, minute] = meetingSchedule.time.split(':').map(Number);
+        date.setHours(hour, minute, 0, 0);
+
+        if (date > now && date < next6Months) {
+          upcomingGroupEvents.push({
+            groupId: group._id,
+            group: groupName,
+            type: 'meeting',
+            dueDate: new Date(date),
+            frequency: meetingSchedule.frequency,
+            time: meetingSchedule.time
+          });
+        }
+      }
+    }
+  });
+
+  console.log("Upcoming Group Events:", upcomingGroupEvents);
+
+  const allUpcomingEvents = [...upcomingLoanEvents, ...upcomingGroupEvents];
+
+  // Sort by date
+  allUpcomingEvents.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  console.log("All Upcoming Events:", allUpcomingEvents);
+
+
+
 
   useEffect(() => {
     if (!userInfo) {
@@ -229,8 +320,7 @@ const getNavigationItems = () => {
     const healthMetrics = {
       activeUsers: users?.filter(user => user.status === 'active').length || 0,
       activeGroups: groups?.filter(group => group.status === 'active').length || 0,
-      pendingApprovals: allLoans?.filter(loan => loan.status === 'pending').length || 0,
-      systemLoad: Math.floor(Math.random() * 100) // Mock system load
+      pendingApprovals: allLoans?.filter(loan => loan.status === 'pending').length || 0
     };
     return healthMetrics;
   };
@@ -349,7 +439,7 @@ const getNavigationItems = () => {
         {/* Enhanced Stats Cards with Better Visual Hierarchy */}
         {!isLoading ? (
            <>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {isAdmin ? (
             // Admin Stats Cards
             <>
@@ -421,7 +511,7 @@ const getNavigationItems = () => {
               </Card>
               </LinkContainer>
 
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-rose-50 to-pink-100 hover:scale-105">
+              {/* <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-rose-50 to-pink-100 hover:scale-105">
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-400/10 to-pink-500/10"></div>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                   <CardTitle className="text-sm font-medium text-rose-800">System Health</CardTitle>
@@ -440,7 +530,7 @@ const getNavigationItems = () => {
                     </p>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </>
           ) : (
             // Regular User Stats Cards (existing)

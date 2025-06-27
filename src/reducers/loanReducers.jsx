@@ -53,6 +53,13 @@ import {
     LOAN_GUARANTOR_APPROVAL_SUCCESS,
     LOAN_GUARANTOR_APPROVAL_FAIL,
     LOAN_GUARANTOR_APPROVAL_RESET,
+    LOAN_DOCUMENT_UPLOAD_REQUEST,
+    LOAN_DOCUMENT_UPLOAD_SUCCESS,
+    LOAN_DOCUMENT_UPLOAD_FAIL,
+    LOAN_DOCUMENT_UPLOAD_RESET,
+    LOAN_DOCUMENT_REMOVE_REQUEST,
+    LOAN_DOCUMENT_REMOVE_SUCCESS,
+    LOAN_DOCUMENT_REMOVE_FAIL,
   } from '../constants/loanConstants';
   
   export const loanCreateReducer = (state = {}, action) => {
@@ -67,7 +74,37 @@ import {
         return state;
     }
   };
-  
+
+  // Loan Document Upload Reducer
+  export const loanDocumentUploadReducer = (state = {}, action) => {
+    switch (action.type) {
+      case LOAN_DOCUMENT_UPLOAD_REQUEST:
+        return { loading: true };
+      case LOAN_DOCUMENT_UPLOAD_SUCCESS:
+        return { loading: false, success: true, document: action.payload };
+      case LOAN_DOCUMENT_UPLOAD_FAIL:
+        return { loading: false, error: action.payload };
+      case LOAN_DOCUMENT_UPLOAD_RESET:
+        return {};
+      default:
+        return state;
+    }
+  };
+
+  // Loan Document Remove Reducer
+  export const loanDocumentRemoveReducer = (state = {}, action) => {
+    switch (action.type) {
+      case LOAN_DOCUMENT_REMOVE_REQUEST:
+        return { loading: true };
+      case LOAN_DOCUMENT_REMOVE_SUCCESS:
+        return { loading: false, success: true };
+      case LOAN_DOCUMENT_REMOVE_FAIL:
+        return { loading: false, error: action.payload };
+      default:
+        return state;
+    }
+  };
+
   export const loanListReducer = (state = { loans: [] }, action) => {
     switch (action.type) {
       case LOAN_LIST_REQUEST:

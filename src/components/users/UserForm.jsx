@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
@@ -18,18 +18,23 @@ import {
   AlertCircle,
   CheckCircle,
   Settings,
-  UserPlus
+  UserPlus,
+  Upload,
+  UploadCloud,
+  Loader2,
+  X
 } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { register, updateUser, getUserDetails, login } from '../../actions/userActions';
+import { register, updateUser, getUserDetails, login, uploadProfilePicture } from '../../actions/userActions';
 
 const UserForm = () => {
   const { id: userId } = useParams();
@@ -55,6 +60,11 @@ const UserForm = () => {
     email: true,
     push: true
   });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const fileInputRef = useRef(null);
   
   // UI state
   const [message, setMessage] = useState(null);
@@ -225,6 +235,53 @@ const UserForm = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File size must be less than 5MB');
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploadError(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', selectedFile);
+
+      // Dispatch the upload action
+      dispatch(uploadProfilePicture(user._id, formData));
+
+      // Reset state on success
+      setSelectedFile(null);
+      setPreviewImage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      setUploadError(error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const loading = loadingRegister || loadingUpdate || loadingDetails;
   const error = errorRegister || errorUpdate || errorDetails;
 
@@ -242,27 +299,35 @@ const UserForm = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-center">
-        {isEditing && (
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button> )}
-        <div className="text-center">
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold flex items-center gap-2">
-            {isEditing ? <User className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
-            {isEditing ? 'Edit User Profile' : 'Create New Account'}
-          </h1>
+      <div className="mb-6">
+          {/* Back Button (left-aligned only if editing) */}
+          {isEditing && (
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate(-1)}
+                title="Back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
-          <p className="text-muted-foreground">
-            {isEditing 
-              ? 'Update user information and preferences' 
-              : 'Fill in your details to create a new account'
-            }
-          </p>
+          {/* Centered Heading */}
+          <div className="flex flex-col items-center text-center">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              {isEditing ? <User className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
+              {isEditing ? "Edit User Profile" : "Create New Account"}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {isEditing
+                ? "Update user information and preferences"
+                : "Fill in your details to create a new account"}
+            </p>
+          </div>
         </div>
-        <div className="w-16" /> {/* Spacer for centering */}
-      </div>
+
 
       {/* Status Messages */}
       {message && (
@@ -285,44 +350,130 @@ const UserForm = () => {
 
       <form onSubmit={submitHandler} className="space-y-6">
         {/* User Status Card (Edit mode only) */}
-        {isEditing && user && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Account Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Current Status</span>
-                  <div className="flex gap-2">
-                    <Badge variant={user.isVerified ? "default" : "secondary"}>
-                      {user.isVerified ? "Verified" : "Unverified"}
-                    </Badge>
-                    <Badge variant={user.isActive ? "default" : "destructive"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </div>
-                <Separator />
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created:</span>
-                    <span className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  {user.updatedAt && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last Updated:</span>
-                      <span className="font-medium">{new Date(user.updatedAt).toLocaleDateString()}</span>
+        {isEditing && isAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Account Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Current Status</span>
+                      <div className="flex gap-2">
+                        <Badge variant={user.isVerified ? "default" : "secondary"}>
+                          {user.isVerified ? "Verified" : "Unverified"}
+                        </Badge>
+                        <Badge variant={user.isActive ? "default" : "destructive"}>
+                          {user.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
                     </div>
+                    <Separator />
+                    <div className="grid gap-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Created:</span>
+                        <span className="font-medium">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {user.updatedAt && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Last Updated:</span>
+                          <span className="font-medium">
+                            {new Date(user.updatedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          {isEditing && !isAdmin && (
+            <div className="w-full flex justify-center">
+              <div className="w-full max-w-lg space-y-6 flex flex-col items-center">
+                {/* Avatar Preview */}
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={previewImage || user.profilePicture} className="object-cover" />
+                    <AvatarFallback>
+                      <User className="h-12 w-12" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {previewImage && (
+                    <button
+                      onClick={() => setPreviewImage(null)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
+
+                {/* Choose File */}
+                <div className="w-full flex flex-col items-center gap-2">
+                    <Label htmlFor="profilePicture">Profile Picture</Label>
+                    <Input
+                      id="profilePicture"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <Label
+                      htmlFor="profilePicture"
+                      className="cursor-pointer border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md inline-flex items-center justify-center gap-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        <span>Choose Image</span>
+                      </div>
+                    </Label>
+                    <p className="text-sm text-muted-foreground text-center">
+                      {selectedFile ? selectedFile.name : "JPG, PNG or GIF (max 5MB)"}
+                    </p>
+                  </div>
+
+                {/* Upload Button */}
+                {selectedFile && (
+                  <Button
+                    type="button"
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="w-full gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="h-4 w-4" />
+                        <span>Upload</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Error */}
+                {uploadError && (
+                  <Alert variant="destructive" className="w-full">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Upload Error</AlertTitle>
+                    <AlertDescription>{uploadError}</AlertDescription>
+                  </Alert>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          )}
+
+
+
 
         {/* Basic Information */}
         <Card>
@@ -336,7 +487,6 @@ const UserForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
                 <Input
@@ -348,7 +498,7 @@ const UserForm = () => {
                   placeholder="Enter your full name"
                 />
               </div>
-
+               {isEditing &&(
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -360,7 +510,7 @@ const UserForm = () => {
                   placeholder="Choose a username"
                 />
               </div>
-            </div>
+               )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
@@ -397,7 +547,7 @@ const UserForm = () => {
                 </p>
               )}
             </div>
-
+              {isEditing &&(
             <div className="space-y-2">
               <Label htmlFor="idNumber">ID Number</Label>
               <Input
@@ -409,6 +559,7 @@ const UserForm = () => {
                 placeholder="Enter your ID number"
               />
             </div>
+              )}
           </CardContent>
         </Card>
 
@@ -526,19 +677,83 @@ const UserForm = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="profilePicture">Profile Picture URL</Label>
-                <div className="relative">
-                  <Input
-                    id="profilePicture"
-                    type="url"
-                    value={profilePicture}
-                    onChange={(e) => setProfilePicture(e.target.value)}
-                    placeholder="https://example.com/profile.jpg"
-                    className="pl-10"
-                  />
+              {isEditing && isAdmin && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src={previewImage || user.profilePicture} className="object-cover" />
+                        <AvatarFallback>
+                          <User className="h-12 w-12" />
+                        </AvatarFallback>
+                      </Avatar>
+                      {previewImage && (
+                        <button
+                          onClick={() => setPreviewImage(null)}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor="profilePicture">Profile Picture</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="profilePicture"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <Label
+                          htmlFor="profilePicture"
+                          className="flex-1 cursor-pointer border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md inline-flex items-center justify-center gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Upload className="h-4 w-4" />
+                            <span>Choose Image</span>
+                          </div>
+                        </Label>
+                        {selectedFile && (
+                          <Button
+                            type="button"
+                            onClick={handleUpload}
+                            disabled={isUploading}
+                            className="gap-2"
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <UploadCloud className="h-4 w-4" />
+                                <span>Upload</span>
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedFile
+                          ? selectedFile.name
+                          : "JPG, PNG or GIF (max 5MB)"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {uploadError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Upload Error</AlertTitle>
+                      <AlertDescription>{uploadError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}

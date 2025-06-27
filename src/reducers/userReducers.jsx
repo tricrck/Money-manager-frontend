@@ -18,6 +18,9 @@ import {
     USER_DELETE_REQUEST,
     USER_DELETE_SUCCESS,
     USER_DELETE_FAIL,
+    USER_PROFILE_PICTURE_UPLOAD_REQUEST,
+    USER_PROFILE_PICTURE_UPLOAD_SUCCESS,
+    USER_PROFILE_PICTURE_UPLOAD_FAIL,
   } from '../constants/userConstants';
   
   export const userRegisterReducer = (state = {}, action) => {
@@ -32,7 +35,20 @@ import {
         return state;
     }
   };
-  
+
+  export const userProfilePictureUploadReducer = (state = { profile: {} }, action) => {
+    switch (action.type) {
+      case USER_PROFILE_PICTURE_UPLOAD_REQUEST:
+        return { loading: true };
+      case USER_PROFILE_PICTURE_UPLOAD_SUCCESS:
+        return { loading: false, success: true, profile: action.payload };
+      case USER_PROFILE_PICTURE_UPLOAD_FAIL:
+        return { loading: false, error: action.payload };
+      default:
+        return state;
+    }
+  };
+
   export const userLoginReducer = (state = {}, action) => {
     switch (action.type) {
       case USER_LOGIN_REQUEST:

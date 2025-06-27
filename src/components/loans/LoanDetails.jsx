@@ -18,7 +18,10 @@ import {
   CreditCard,
   Percent,
   Shield,
-  Target
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from 'lucide-react'
 import {
   Dialog,
@@ -35,6 +38,9 @@ const LoanDetails = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { loanId } = useParams()
+
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false)
 
   const loanDetails = useSelector((state) => state.loanDetails)
   const { loading, error, loan = {} } = loanDetails
@@ -108,6 +114,23 @@ const LoanDetails = () => {
   // Count paid installments
   const paidInstallments = repaymentSchedule.filter(installment => installment.paid).length
   const totalInstallments = repaymentSchedule.length
+
+  const handleImageClick = (index) => {
+    setCurrentImageIndex(index)
+    setIsImageDialogOpen(true)
+  }
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === collateral.documents.length - 1 ? 0 : prevIndex + 1
+    )
+  }
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prevIndex) => 
+      prevIndex === 0 ? collateral.documents.length - 1 : prevIndex - 1
+    )
+  }
 
   if (loading) return <LoanDetailsSkeleton />
   if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>
@@ -320,7 +343,71 @@ const LoanDetails = () => {
                 <p className="text-sm font-bold">{formatCurrency(collateral.value || 0)}</p>
               </div>
             </div>
+            
+            {collateral.documents && collateral.documents.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Documents</p>
+                <div className="flex flex-wrap gap-2">
+                  {collateral.documents.map((doc, index) => (
+                    <div 
+                      key={index}
+                      className="relative h-24 w-24 rounded-md overflow-hidden border cursor-pointer hover:border-blue-500 transition-colors"
+                      onClick={() => handleImageClick(index)}
+                    >
+                      <img 
+                        src={doc} 
+                        alt={`Collateral document ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
+
+          {/* Image Slideshow Dialog */}
+          <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-none">
+              <div className="relative w-full h-full">
+                <button 
+                  className="absolute top-4 right-4 z-50 rounded-full bg-gray-800 p-2 text-white hover:bg-gray-700"
+                  onClick={() => setIsImageDialogOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                
+                <div className="flex items-center justify-center h-[80vh]">
+                  <img 
+                    src={collateral.documents[currentImageIndex]} 
+                    alt={`Collateral document ${currentImageIndex + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+                
+                <div className="absolute inset-0 flex items-center justify-between px-4">
+                  <button 
+                    className="rounded-full bg-gray-800 p-2 text-white hover:bg-gray-700 z-50"
+                    onClick={handlePrevImage}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button 
+                    className="rounded-full bg-gray-800 p-2 text-white hover:bg-gray-700 z-50"
+                    onClick={handleNextImage}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                </div>
+                
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                  <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                    {currentImageIndex + 1} / {collateral.documents.length}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
       )}
 

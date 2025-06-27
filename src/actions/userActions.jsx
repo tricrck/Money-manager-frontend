@@ -18,6 +18,9 @@ import {
     USER_DELETE_REQUEST,
     USER_DELETE_SUCCESS,
     USER_DELETE_FAIL,
+    USER_PROFILE_PICTURE_UPLOAD_REQUEST,
+    USER_PROFILE_PICTURE_UPLOAD_SUCCESS,
+    USER_PROFILE_PICTURE_UPLOAD_FAIL,
   } from '../constants/userConstants';
   import * as api from '../api/users';
   
@@ -44,7 +47,30 @@ import {
       });
     }
   };
-  
+
+  export const uploadProfilePicture = (userId, formData) => async (dispatch) => {
+    console.log('Uploading profile picture for user:', userId);
+    console.log('FormData:', formData);
+    try {
+      dispatch({ type: USER_PROFILE_PICTURE_UPLOAD_REQUEST });
+
+      const { data } = await api.uploadProfilePicture(userId, formData);
+
+      dispatch({
+        type: USER_PROFILE_PICTURE_UPLOAD_SUCCESS,
+        payload: data,
+      });
+    } catch (error) {
+      dispatch({
+        type: USER_PROFILE_PICTURE_UPLOAD_FAIL,
+        payload:
+          error.response && error.response.data.message
+            ? error.response.data.message
+            : error.message,
+      });
+    }
+  };
+
   export const login = (phoneNumber, password) => async (dispatch) => {
     try {
       dispatch({ type: USER_LOGIN_REQUEST });

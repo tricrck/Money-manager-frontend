@@ -43,6 +43,8 @@ const LoanList = () => {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 
+  console.log(loans)
+
   useEffect(() => {
     if (userInfo && userInfo.user.role === 'Admin') {
       dispatch(listLoans());

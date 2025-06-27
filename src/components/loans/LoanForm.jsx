@@ -1,4 +1,4 @@
-import React, { useEffect, useState, memo, useCallback } from 'react';
+import React, { useEffect, useState, memo, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -60,7 +60,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { createLoan, updateLoan, getLoanDetails } from '../../actions/loanActions';
+import { createLoan, updateLoan, getLoanDetails, uploadCollateralDocuments  } from '../../actions/loanActions';
 import { listUsers } from '../../actions/userActions';
 import { listGroups } from '../../actions/groupActions';
 import { formatCurrency } from '@/lib/utils';
@@ -304,32 +304,42 @@ const CollateralStep = memo(({
             className="hidden"
             id="document-upload"
           />
-          <Label htmlFor="document-upload" className="cursor-pointer">
-            <Button type="button" variant="outline" size="sm">
-              Choose Files
-            </Button>
-          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => document.getElementById('document-upload')?.click()}
+          >
+            Choose Files
+          </Button>
         </div>
 
         {formData.collateral.documents.length > 0 && (
+         <div className="space-y-2">
+          <Label>Uploaded Documents</Label>
           <div className="space-y-2">
-            <Label>Uploaded Documents</Label>
-            <div className="space-y-2">
-              {formData.collateral.documents.map((doc, index) => (
-                <div key={index} className="flex items-center justify-between p-2 border rounded">
-                  <span className="text-sm">{doc.name}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeDocument(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+            {formData.collateral.documents.map((doc, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-2 border rounded"
+              >
+                <img
+                  src={doc.preview || doc }
+                  alt={`Document ${index + 1}`}
+                  className="h-20 w-auto rounded shadow"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeDocument(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
+        </div>
         )}
       </div>
     </CardContent>
@@ -430,7 +440,7 @@ const PartiesStep = memo(({
           </Button>
         </div>
 
-        {formData.guarantors.length > 0 ? (
+        {formData?.guarantors?.length > 0 ? (
           <div className="space-y-3">
             {formData.guarantors.map((guarantor, index) => (
               <Card key={index}>
@@ -634,6 +644,7 @@ const LoanForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const inputRef = useRef(null);
 
   // Form state
   const [currentStep, setCurrentStep] = useState(1);
@@ -671,10 +682,12 @@ const LoanForm = () => {
   const { loading: loadingGroups, groups = [] } = useSelector((state) => state.groupList);
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
+  const loanDocumentUpload = useSelector((state) => state.loanDocumentUpload);
+  const { loading: loanDocumentUploadloading, success: successloanDocumentUpload, error:errorloanDocumentUpload, document = [] } = loanDocumentUpload;
 
   const isEditMode = Boolean(id);
-  const loading = loadingCreate || loadingUpdate || loadingDetails;
-  const error = errorCreate || errorUpdate || errorDetails;
+  const loading = loadingCreate || loadingUpdate || loadingDetails || loanDocumentUploadloading;
+  const error = errorCreate || errorUpdate || errorDetails || errorloanDocumentUpload;
   const isAdmin = userInfo?.user?.role === "Admin";
 
   // Load initial data
@@ -748,11 +761,10 @@ const LoanForm = () => {
   // Handle file uploads
   const handleFileUpload = useCallback((files) => {
     const newDocuments = Array.from(files).map(file => ({
-      url: URL.createObjectURL(file),
-      name: file.name,
-      file
+      file, // local File object
+      preview: URL.createObjectURL(file) // optional: for preview
     }));
-    
+
     setFormData(prev => ({
       ...prev,
       collateral: {
@@ -762,6 +774,8 @@ const LoanForm = () => {
     }));
     setIsDirty(true);
   }, []);
+
+
 
   const removeDocument = useCallback((index) => {
     setFormData(prev => {
@@ -922,21 +936,52 @@ const handleSubmit = async (e) => {
     }
   };
 
-  console.log('Submitting loan data:', submitData);
+  console.log('Submitting loan data:', submitData, document);
 
   if (isEditMode) {
-    dispatch(updateLoan(id, submitData));
+    dispatch(updateLoan(loan._id, submitData));
   } else {
     dispatch(createLoan(submitData));
   }
 };
 
 // Navigation between steps
-const nextStep = () => {
-  if (validateStep(currentStep)) {
-    setCurrentStep(prev => Math.min(prev + 1, 4));
+const nextStep = async () => {
+  if (!validateStep(currentStep)) return;
+
+  if (currentStep === 2) {
+    // Split documents: already uploaded vs to upload
+    const { documents } = formData.collateral;
+    const alreadyUploaded = documents.filter(d => typeof d === 'string' || d.url);
+    const toUpload = documents.filter(d => d.file);
+
+    if (toUpload.length > 0) {
+      const form = new FormData();
+      toUpload.forEach(doc => form.append('documents', doc.file));
+
+      const result = await dispatch(uploadCollateralDocuments(id, form));
+
+      if (document?.uploadedFiles?.length > 0) {
+        const uploadedUrls = document.uploadedFiles;
+
+        // Combine new uploaded URLs with already-uploaded ones
+        const finalDocuments = [...alreadyUploaded, ...uploadedUrls.map(url => ({ url }))];
+
+        setFormData(prev => ({
+          ...prev,
+          collateral: {
+            ...prev.collateral,
+            documents: finalDocuments
+          }
+        }));
+      }
+    }
   }
+
+  setCurrentStep(prev => Math.min(prev + 1, 4));
 };
+
+
 
 const prevStep = () => {
   setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -1074,7 +1119,7 @@ return (
           </h1>
           <p className="text-muted-foreground">
             {isEditMode && loan 
-              ? `Editing loan #${loan.loanNumber} for ${loan.user?.name}` 
+              ? `Editing loan #${loan._id?.substring(0, 5)} for ${loan.user?.name}` 
               : 'Set up your loan application'
             }
           </p>

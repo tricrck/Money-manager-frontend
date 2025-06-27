@@ -35,6 +35,8 @@ const MyLoansList = ({ history }) => {
   const userLoansList = useSelector((state) => state.userLoansList);
   const { loading, error, loans } = userLoansList;
 
+  console.log(loans)
+
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 

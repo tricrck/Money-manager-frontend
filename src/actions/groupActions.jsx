@@ -174,6 +174,7 @@ import {
   };
   
   export const updateGroup = (group) => async (dispatch) => {
+    console.log(group);
     try {
       dispatch({ type: GROUP_UPDATE_REQUEST });
   
