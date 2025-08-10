@@ -9,6 +9,9 @@ import {
   userUpdateReducer,
   userDeleteReducer,
   userProfilePictureUploadReducer,
+  passwordResetLinkReducer,
+  passwordResetReducer,
+  pushTokenReducer 
 } from './reducers/userReducers';
 import {
   loanCreateReducer,
@@ -29,6 +32,7 @@ import {
   loanGuarantorApprovalReducer,
   loanDocumentUploadReducer,
   loanDocumentRemoveReducer,
+  guarantorLoansReducer
 } from './reducers/loanReducers';
 import {
   groupCreateReducer,
@@ -97,6 +101,10 @@ const reducer = combineReducers({
   userUpdate: userUpdateReducer,
   userDelete: userDeleteReducer,
   userProfilePictureUpload: userProfilePictureUploadReducer,
+  passwordResetLink: passwordResetLinkReducer,
+  passwordReset: passwordResetReducer,
+  pushTokenSave: pushTokenReducer,
+  
   
 
   loanCreate: loanCreateReducer,
@@ -117,6 +125,7 @@ const reducer = combineReducers({
   loanGuarantorApproval: loanGuarantorApprovalReducer,
   loanDocumentUpload: loanDocumentUploadReducer,
   loanDocumentRemove: loanDocumentRemoveReducer,
+  guarantorLoans: guarantorLoansReducer,
 
   groupCreate: groupCreateReducer,
   groupList: groupListReducer,

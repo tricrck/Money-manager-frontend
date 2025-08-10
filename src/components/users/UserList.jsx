@@ -86,6 +86,7 @@ const UserList = () => {
 
   const userDelete = useSelector((state) => state.userDelete);
   const { success: successDelete, loading: deleteLoading } = userDelete;
+  console.log('UserList rendered', users);
 
   // State for filtering and sorting
   const [searchTerm, setSearchTerm] = useState('');
@@ -455,7 +456,7 @@ const UserList = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Users className="h-8 w-8" />
@@ -465,7 +466,7 @@ const UserList = () => {
             Manage and monitor all users across the platform
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:inline flex items-center gap-2">
           <Button variant="outline" onClick={exportUsers}>
             <Download className="h-4 w-4 mr-2" />
             Export

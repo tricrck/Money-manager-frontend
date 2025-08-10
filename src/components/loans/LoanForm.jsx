@@ -1,4 +1,4 @@
-import React, { useEffect, useState, memo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, memo, useCallback, useRef, use, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -60,18 +60,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { createLoan, updateLoan, getLoanDetails, uploadCollateralDocuments  } from '../../actions/loanActions';
+import { createLoan, updateLoan, getLoanDetails, uploadCollateralDocuments, loanUpdateReset, removeCollateralDocument  } from '../../actions/loanActions';
 import { listUsers } from '../../actions/userActions';
-import { listGroups } from '../../actions/groupActions';
+import { listGroups, listMyGroups, getGroupDetails } from '../../actions/groupActions';
 import { formatCurrency } from '@/lib/utils';
 
 // Step 1: Loan Details
-const LoanDetailsStep = memo(({ 
-  formData, 
-  handleChange, 
-  errors, 
+const LoanDetailsStep = memo(({
+  formData,
+  handleChange,
+  errors,
   formatCurrency,
-  onCalculate 
+  onCalculate,
+  isAdmin,
 }) => (
   <Card>
     <CardHeader>
@@ -80,13 +81,21 @@ const LoanDetailsStep = memo(({
         Loan Details
       </CardTitle>
     </CardHeader>
+
     <CardContent className="space-y-6">
+
+      {/* Loan Type & Principal */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="loanType">Loan Type</Label>
-          <Select value={formData.loanType} onValueChange={(value) => handleChange({ target: { name: 'loanType', value } })}>
+          <Select
+            value={formData.loanType}
+            onValueChange={(value) =>
+              handleChange({ target: { name: "loanType", value } })
+            }
+          >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select loan type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="personal">
@@ -95,18 +104,14 @@ const LoanDetailsStep = memo(({
                   Personal Loan
                 </div>
               </SelectItem>
+              {isAdmin && (
               <SelectItem value="group">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Group Loan
                 </div>
               </SelectItem>
-              <SelectItem value="emergency">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Emergency Loan
-                </div>
-              </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -132,87 +137,53 @@ const LoanDetailsStep = memo(({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="repaymentPeriod">Repayment Period (months) *</Label>
-          <Input
-            id="repaymentPeriod"
-            name="repaymentPeriod"
-            type="number"
-            min="1"
-            max="60"
-            value={formData.repaymentPeriod}
-            onChange={handleChange}
-            className={errors.repaymentPeriod ? "border-red-500" : ""}
-          />
-          {errors.repaymentPeriod && (
-            <p className="text-sm text-red-500 flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              {errors.repaymentPeriod}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="interestRate">Interest Rate (%) *</Label>
-          <Input
-            id="interestRate"
-            name="interestRate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={formData.interestRate}
-            onChange={handleChange}
-            className={errors.interestRate ? "border-red-500" : ""}
-          />
-          {errors.interestRate && (
-            <p className="text-sm text-red-500 flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />
-              {errors.interestRate}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="processingFee">Processing Fee (KES)</Label>
-          <Input
-            id="processingFee"
-            name="processingFee"
-            type="number"
-            min="0"
-            value={formData.processingFee}
-            onChange={handleChange}
-          />
-        </div>
+      {/* Repayment Period */}
+      <div className="space-y-2">
+        <Label htmlFor="repaymentPeriod">Repayment Period (months) *</Label>
+        <select
+          id="repaymentPeriod"
+          name="repaymentPeriod"
+          value={formData.repaymentPeriod}
+          onChange={handleChange}
+          className={`w-full rounded-md px-3 py-2 border ${
+            errors.repaymentPeriod ? "border-red-500" : "border-gray-300"
+          }`}
+        >
+          <option value="">Select a period</option>
+          <option value="1">1 month</option>
+          <option value="3">3 months</option>
+          <option value="6">6 months</option>
+          <option value="12">12 months</option>
+          <option value="24">24 months</option>
+        </select>
+        {errors.repaymentPeriod && (
+          <p className="text-sm text-red-500 flex items-center gap-1">
+            <AlertCircle className="h-4 w-4" />
+            {errors.repaymentPeriod}
+          </p>
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="interestType">Interest Type</Label>
-          <Select value={formData.interestType} onValueChange={(value) => handleChange({ target: { name: 'interestType', value } })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="simple">Simple Interest</SelectItem>
-              <SelectItem value="reducing_balance">Reducing Balance</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="disbursementDate">Disbursement Date</Label>
-          <Input
-            id="disbursementDate"
-            name="disbursementDate"
-            type="date"
-            value={formData.disbursementDate}
-            onChange={handleChange}
-          />
-        </div>
+      {/* Interest Type */}
+      <div className="space-y-2">
+        <Label htmlFor="interestType">Interest Type</Label>
+        <Select
+          value={formData.interestType}
+          onValueChange={(value) =>
+            handleChange({ target: { name: "interestType", value } })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select interest type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="simple">Simple Interest</SelectItem>
+            <SelectItem value="reducing_balance">Reducing Balance</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Loan Purpose */}
       <div className="space-y-2">
         <Label htmlFor="purpose">Purpose of Loan</Label>
         <Textarea
@@ -225,8 +196,14 @@ const LoanDetailsStep = memo(({
         />
       </div>
 
+      {/* Action */}
       <div className="flex justify-center">
-        <Button type="button" onClick={onCalculate} variant="outline" className="flex items-center gap-2">
+        <Button
+          type="button"
+          onClick={onCalculate}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
           <Calculator className="h-4 w-4" />
           Calculate Loan Preview
         </Button>
@@ -234,6 +211,7 @@ const LoanDetailsStep = memo(({
     </CardContent>
   </Card>
 ));
+
 
 // Step 2: Collateral Information
 const CollateralStep = memo(({ 
@@ -332,8 +310,10 @@ const CollateralStep = memo(({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => removeDocument(index)}
-                >
+                 onClick={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  removeDocument(index);
+                }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -350,7 +330,8 @@ const CollateralStep = memo(({
 const PartiesStep = memo(({ 
   formData, 
   handleChange, 
-  users, 
+  users,
+  group, 
   groups, 
   errors,
   addGuarantor,
@@ -358,7 +339,22 @@ const PartiesStep = memo(({
   removeGuarantor,
   isAdmin,
   userInfo
-}) => (
+}) => {
+  // 1️⃣ Build a flat, de‑duplicated list of { _id, name, email }
+  const allOptions = useMemo(() => {
+    const map = new Map();
+    // flat users
+    users.forEach(u => map.set(u._id, u));
+    // nested group members
+    group?.members?.forEach(m => {
+      if (m.user?._id) {
+        map.set(m.user._id, m.user);
+      }
+    });
+    return Array.from(map.values());
+  }, [users, group?.members]);
+
+  return (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
@@ -403,8 +399,6 @@ const PartiesStep = memo(({
               </p>
             )}
         </div>
-
-        {formData.loanType === 'group' && (
           <div className="space-y-2">
             <Label htmlFor="group">Group *</Label>
             <Select value={formData.group} onValueChange={(value) => handleChange({ target: { name: 'group', value } })}>
@@ -426,11 +420,10 @@ const PartiesStep = memo(({
               </p>
             )}
           </div>
-        )}
       </div>
 
       <Separator />
-
+ 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Guarantors</Label>
@@ -447,17 +440,19 @@ const PartiesStep = memo(({
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <Select 
-                        value={guarantor.user} 
-                        onValueChange={(value) => updateGuarantor(index, 'user', value)}
-                      >
+                      <Select value={guarantor.user} onValueChange={v => updateGuarantor(index, 'user', v)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select guarantor" />
+                          <SelectValue>
+                            {(() => {
+                              const u = allOptions.find(u => u._id === guarantor.user);
+                              return u ? `${u.name} (${u.email})` : 'Select guarantor';
+                            })()}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {users.map((user) => (
-                            <SelectItem key={user._id} value={user._id}>
-                              {user.name} ({user.email})
+                          {allOptions.map(u => (
+                            <SelectItem key={u._id} value={u._id}>
+                              {u.name} ({u.email})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -490,7 +485,7 @@ const PartiesStep = memo(({
       </div>
     </CardContent>
   </Card>
-));
+)});
 
 // Step 4: Review
 const ReviewStep = memo(({ 
@@ -648,25 +643,7 @@ const LoanForm = () => {
 
   // Form state
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    loanType: 'personal',
-    principalAmount: 1000,
-    repaymentPeriod: 6,
-    interestRate: 10,
-    interestType: 'simple',
-    processingFee: 0,
-    purpose: '',
-    collateral: {
-      description: '',
-      value: 0,
-      documents: [],
-    },
-    user: '',
-    group: '',
-    guarantors: [],
-    noteText: '',
-    disbursementDate: new Date().toISOString().split('T')[0]
-  });
+  
 
   // UI state
   const [showCalculation, setShowCalculation] = useState(false);
@@ -676,12 +653,20 @@ const LoanForm = () => {
 
   // Redux state
   const { loading: loadingDetails, error: errorDetails, loan } = useSelector((state) => state.loanDetails);
-  const { loading: loadingCreate, error: errorCreate, success: successCreate } = useSelector((state) => state.loanCreate);
-  const { loading: loadingUpdate, error: errorUpdate, success: successUpdate } = useSelector((state) => state.loanUpdate);
+  const { loading: loadingCreate, error: errorCreate, success: successCreate, loan: createdLoan } = useSelector((state) => state.loanCreate);
+  const { loading: loadingUpdate, error: errorUpdate, success: successUpdate, loan: UpdatedLoan = [] } = useSelector((state) => state.loanUpdate);
   const { loading: loadingUsers, users = [] } = useSelector((state) => state.userList);
-  const { loading: loadingGroups, groups = [] } = useSelector((state) => state.groupList);
+  const { loading: loadingGroups, groups: Allgroups = [] } = useSelector((state) => state.groupList);
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
+
+  const myGroups = useSelector((state) => state.myGroups);
+  const { myGroups: myGroupsList = [] } = myGroups;
+
+
+  const groupDetails = useSelector((state) => state.groupDetails);
+  const { group } = groupDetails;
+
   const loanDocumentUpload = useSelector((state) => state.loanDocumentUpload);
   const { loading: loanDocumentUploadloading, success: successloanDocumentUpload, error:errorloanDocumentUpload, document = [] } = loanDocumentUpload;
 
@@ -690,29 +675,62 @@ const LoanForm = () => {
   const error = errorCreate || errorUpdate || errorDetails || errorloanDocumentUpload;
   const isAdmin = userInfo?.user?.role === "Admin";
 
-  // Load initial data
+  const loanId = createdLoan?._id || loan?._id || id;
+
+
+  // const groups = Allgroups || myGroupsList;
+  const groups = isAdmin ? Allgroups : myGroupsList
+
+  const [formData, setFormData] = useState({
+    loanType: 'personal',
+    principalAmount: 0,
+    repaymentPeriod: 0,
+    interestRate: 10,
+    interestType: 'simple',
+    processingFee: 0,
+    purpose: '',
+    collateral: {
+      description: '',
+      value: 0,
+      documents: [],
+    },
+    user: userInfo?.user?._id || '',
+    group: groups[0]?._id,
+    guarantors: [],
+    noteText: '',
+  });
+
+  const groupId = formData?.group;
+
   useEffect(() => {
-    if (isEditMode) {
-      dispatch(getLoanDetails(id));
+    if (groupId){
+      dispatch(getGroupDetails(groupId));
+    }
+  }, [dispatch, groupId]);
+
+   // Load initial data
+  useEffect(() => {
+    if (loanId && isEditMode) {
+      dispatch(getLoanDetails(loanId));
     }
     if (!isAdmin && userInfo?.user?._id) {
       handleChange({ target: { name: "user", value: userInfo.user._id } });
+      dispatch(listMyGroups());
     } else {
       dispatch(listUsers());
       dispatch(listGroups());
     }
-  }, [dispatch, id, isEditMode, isAdmin, userInfo]);
+  }, [dispatch, loanId, isEditMode, isAdmin, userInfo]);
+
 
   // Set form values when loan details are loaded
   useEffect(() => {
-    if (isEditMode && loan) {
+    if (loanId && loan) {
       setFormData({
         loanType: loan.loanType || 'personal',
-        principalAmount: loan.principalAmount || 1000,
-        repaymentPeriod: loan.repaymentPeriod || 6,
-        interestRate: loan.interestRate || 10,
+        principalAmount: loan.principalAmount || 0,
+        repaymentPeriod: loan.repaymentPeriod || 0,
         interestType: loan.interestType || 'simple',
-        processingFee: loan.processingFee || 0,
         purpose: loan.purpose || '',
         collateral: loan.collateral || {
           description: '',
@@ -721,20 +739,60 @@ const LoanForm = () => {
         },
         user: loan.user?._id || '',
         group: loan.group?._id || '',
-        guarantors: loan.guarantors || [],
+        guarantors:(loan.guarantors || []).map(g => ({
+          user: typeof g.user === 'object' ? g.user?._id : g.user,
+          approved: !!g.approved
+        })),
         noteText: '',
-        disbursementDate: loan.disbursementDate ? loan.disbursementDate.split('T')[0] : new Date().toISOString().split('T')[0]
       });
       setIsDirty(false);
     }
   }, [isEditMode, loan]);
 
+  useEffect(() => {
+    if (successUpdate) {
+      navigate('/loans');
+      dispatch(loanUpdateReset());
+    }
+  }, [successUpdate, navigate]);
+
   // Handle success actions
   useEffect(() => {
-    if (successCreate || successUpdate) {
-      navigate('/loans');
+    if (successloanDocumentUpload && document) {
+      const { documents } = formData.collateral;
+
+        const alreadyUploaded = documents.filter(d => typeof d === 'string' || d.url);
+        const uploadedUrls = document.uploadedFiles;
+
+        // Combine new uploaded URLs with already-uploaded ones
+        const finalDocuments = [
+            ...alreadyUploaded.map(d => (typeof d === 'string' ? d : d.url)),
+            ...uploadedUrls
+          ];
+
+        setFormData(prev => ({
+          ...prev,
+          collateral: {
+            ...prev.collateral,
+            documents: finalDocuments
+          }
+        }));
     }
-  }, [successCreate, successUpdate, navigate]);
+  }, [successloanDocumentUpload, document]);
+
+  useEffect(() => {
+    if (successCreate && createdLoan) {
+      setCurrentStep(3); // move to step 3 ONLY after successful loan creation
+    }
+  }, [successCreate, createdLoan]);
+
+  useEffect(() => {
+    if (errorCreate) {
+      // Optionally show a toast or alert
+      console.error('Loan creation failed:', errorCreate);
+    }
+  }, [errorCreate]);
+
 
   // Handle form field changes
   const handleChange = useCallback((e) => {
@@ -778,19 +836,27 @@ const LoanForm = () => {
 
 
   const removeDocument = useCallback((index) => {
-    setFormData(prev => {
-      const newDocuments = [...prev.collateral.documents];
-      newDocuments.splice(index, 1);
-      return {
-        ...prev,
-        collateral: {
-          ...prev.collateral,
-          documents: newDocuments
-        }
-      };
-    });
-    setIsDirty(true);
-  }, []);
+  setFormData(prev => {
+    const newDocuments = [...prev.collateral.documents];
+    const removedDoc = newDocuments[index];
+    newDocuments.splice(index, 1);
+    return {
+      ...prev,
+      collateral: {
+        ...prev.collateral,
+        documents: newDocuments
+      }
+    };
+  });
+
+  // Dispatch after state update
+  if (typeof formData.collateral.documents[index] === 'string') {
+    dispatch(removeCollateralDocument(loanId, formData.collateral.documents[index]));
+  }
+
+  setIsDirty(true);
+}, [dispatch, loanId, formData.collateral.documents]);
+
 
   // Handle guarantors
   const addGuarantor = useCallback(() => {
@@ -832,16 +898,16 @@ const LoanForm = () => {
     switch(step) {
       case 1:
         if (!formData.principalAmount || formData.principalAmount < 100) {
-          errors.principalAmount = 'Principal amount must be at least 100';
+          errors.principalAmount = 'Please enter a valid loan amount';
         }
         if (!formData.repaymentPeriod || formData.repaymentPeriod < 1) {
-          errors.repaymentPeriod = 'Repayment period must be at least 1 month';
+          errors.repaymentPeriod = 'Repayment period must be at least 12 month';
         }
         if (formData.interestRate < 0 || formData.interestRate > 100) {
           errors.interestRate = 'Interest rate must be between 0% and 100%';
         }
         break;
-      case 2:
+      case 3:
         if (!formData.collateral.description.trim()) {
           errors.collateralDescription = 'Collateral description is required';
         }
@@ -849,7 +915,7 @@ const LoanForm = () => {
           errors.collateralValue = 'Collateral value cannot be negative';
         }
         break;
-      case 3:
+      case 2:
         if (!formData.user) {
           errors.user = 'Please select a borrower';
         }
@@ -906,6 +972,12 @@ const calculateLoanPreview = useCallback(() => {
   setShowCalculation(true);
 }, [formData, validateStep]);
 
+const validateDocuments = () => {
+  const { documents } = formData.collateral;
+  const isValid = documents.every(doc => typeof doc === 'string');
+  return isValid;
+};
+
 // Handle form submission
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -922,6 +994,17 @@ const handleSubmit = async (e) => {
     }
     return;
   }
+  if (!loanId) {
+    alert("Please complete the loan creation step first.");
+    setCurrentStep(2); // Return to step 2 where loan is created
+    return; // ⛔ Stop here
+  }
+  
+  // Validate documents
+  if (!validateDocuments()) {
+    alert("Please ensure all documents are properly uploaded.");
+    return;
+  }
 
   // Prepare form data for submission
   const submitData = {
@@ -936,48 +1019,40 @@ const handleSubmit = async (e) => {
     }
   };
 
-  console.log('Submitting loan data:', submitData, document);
-
-  if (isEditMode) {
-    dispatch(updateLoan(loan._id, submitData));
-  } else {
-    dispatch(createLoan(submitData));
-  }
+  dispatch(updateLoan(loanId, submitData));
+  
 };
 
 // Navigation between steps
 const nextStep = async () => {
   if (!validateStep(currentStep)) return;
+  if (currentStep === 2 && !isEditMode) {
+    const submitData = {
+        ...formData,
+        principalAmount: parseFloat(formData.principalAmount),
+        repaymentPeriod: parseInt(formData.repaymentPeriod),
+        collateral: {
+          ...formData.collateral,
+          value: parseFloat(formData.collateral.value) || 0
+        }
+      };
+    // Dispatch and wait for result
+    dispatch(createLoan(submitData)); // Wait for Redux to handle success
+    return;
+  }
 
-  if (currentStep === 2) {
+  if (currentStep === 3) {
     // Split documents: already uploaded vs to upload
     const { documents } = formData.collateral;
-    const alreadyUploaded = documents.filter(d => typeof d === 'string' || d.url);
     const toUpload = documents.filter(d => d.file);
 
     if (toUpload.length > 0) {
       const form = new FormData();
       toUpload.forEach(doc => form.append('documents', doc.file));
 
-      const result = await dispatch(uploadCollateralDocuments(id, form));
-
-      if (document?.uploadedFiles?.length > 0) {
-        const uploadedUrls = document.uploadedFiles;
-
-        // Combine new uploaded URLs with already-uploaded ones
-        const finalDocuments = [...alreadyUploaded, ...uploadedUrls.map(url => ({ url }))];
-
-        setFormData(prev => ({
-          ...prev,
-          collateral: {
-            ...prev.collateral,
-            documents: finalDocuments
-          }
-        }));
-      }
+      dispatch(uploadCollateralDocuments(loanId, form));
     }
   }
-
   setCurrentStep(prev => Math.min(prev + 1, 4));
 };
 
@@ -1061,9 +1136,10 @@ const renderStepContent = () => {
           errors={validationErrors}
           formatCurrency={formatCurrency}
           onCalculate={calculateLoanPreview}
+          isAdmin={isAdmin}
         />
       );
-    case 2:
+    case 3:
       return (
         <CollateralStep
           formData={formData}
@@ -1073,12 +1149,13 @@ const renderStepContent = () => {
           removeDocument={removeDocument}
         />
       );
-    case 3:
+    case 2:
       return (
         <PartiesStep
           formData={formData}
           handleChange={handleChange}
           users={users}
+          group={group}
           groups={groups}
           errors={validationErrors}
           addGuarantor={addGuarantor}
@@ -1107,10 +1184,9 @@ const renderStepContent = () => {
 return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate('/loans')}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <Button className="hidden sm:inline" variant="ghost" onClick={() => navigate('/loans')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
         </Button>
         <div className="text-center">
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -1134,8 +1210,8 @@ return (
             <div className="flex justify-between">
               {[
                 { number: 1, title: 'Loan Details', icon: FileText },
-                { number: 2, title: 'Collateral', icon: Shield },
-                { number: 3, title: 'Parties', icon: Users },
+                { number: 2, title: 'Parties', icon: Users },
+                { number: 3, title: 'Collateral', icon: Shield },
                 { number: 4, title: 'Review', icon: ClipboardList }
               ].map((step) => {
                 const IconComponent = step.icon;
@@ -1208,10 +1284,17 @@ return (
               ) : (
                 <Button onClick={handleSubmit} disabled={loading || !isDirty}>
                   {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {isEditMode ? 'Updating...' : 'Creating...'}
-                    </>
+                    loanDocumentUploadloading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {isEditMode ? 'Uploading Documents...' : 'Uploading Documents...'}
+                      </>
+                    ) : (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {isEditMode ? 'Updating...' : 'Creating...'}
+                      </>
+                    )
                   ) : (
                     <>
                       <Save className="h-4 w-4 mr-2" />

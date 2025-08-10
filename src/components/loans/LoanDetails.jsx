@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  AlertTriangle,
+
 } from 'lucide-react'
 import {
   Dialog,
@@ -33,6 +35,9 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
+import { getGroupDetails } from '../../actions/groupActions';
+import LoanReviewForm from '../loans/LoanReviewForm';
+import LoanDisbursementForm from './LoanDisbursementForm'
 
 const LoanDetails = () => {
   const navigate = useNavigate()
@@ -41,6 +46,9 @@ const LoanDetails = () => {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false)
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showDisburseModal, setShowDisburseModal] = useState(false);
+
 
   const loanDetails = useSelector((state) => state.loanDetails)
   const { loading, error, loan = {} } = loanDetails
@@ -48,14 +56,27 @@ const LoanDetails = () => {
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
 
+  const groupDetails = useSelector((state) => state.groupDetails);
+  const { loading: groupDetailsloading, error:groupDetailserror, group } = groupDetails;
+
   useEffect(() => {
     if (userInfo) {
-      console.log(loanId)
       dispatch(getLoanDetails(loanId))
     } else {
       navigate('/login')
     }
+    
   }, [dispatch, navigate, loanId, userInfo])
+
+  useEffect(() => {
+    if (loan?.group) {
+      dispatch(getGroupDetails(loan?.group._id))
+    }
+  }, [dispatch, loan]);
+
+
+
+
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -103,7 +124,6 @@ const LoanDetails = () => {
   const guarantors = Array.isArray(loan?.guarantors) ? loan.guarantors : []
   const collateral = loan?.collateral || {}
   const user = loan?.user || {}
-  const group = loan?.group || {}
 
   // Calculate progress
   const totalRepayable = loan?.totalRepayableAmount || 0
@@ -132,6 +152,42 @@ const LoanDetails = () => {
     )
   }
 
+  // Check user permissions
+  const canReview = () => {
+    const userRole = userInfo?.user?.role;
+    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?.user?._id)?.role || "none";
+    
+    // Admin can review all loans
+    if (userRole === 'Admin') return true;
+    
+    // Chair can review loans
+    if (groupRole === 'chair') return true;
+    
+    return false;
+  };
+
+  const canDisburse = () => {
+    const userRole = userInfo?.user?.role;
+    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?.user?._id)?.role || "none";
+
+    
+    // Admin can disburse all loans
+    if (userRole === 'Admin') return true;
+    
+    // Treasurer can disburse loans
+    if (groupRole === 'treasurer') return true;
+    
+    return false;
+  };
+
+  const shouldShowReviewButton = () => {
+    return loan.status === 'pending' && canReview();
+  };
+
+  const shouldShowDisburseButton = () => {
+    return loan.status === 'approved' && canDisburse();
+  };
+
   if (loading) return <LoanDetailsSkeleton />
   if (error) return <div className="text-center p-8 text-red-500">Error: {error}</div>
 
@@ -140,13 +196,49 @@ const LoanDetails = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Loan Details</h1>
-          <p className="text-muted-foreground">Loan ID: {loan._id}</p>
         </div>
         <div className="flex items-center space-x-2">
           {getStatusIcon(loan.status)}
           {getStatusBadge(loan.status)}
         </div>
       </div>
+
+      {/* Action Buttons */}
+      {(shouldShowReviewButton() || shouldShowDisburseButton()) && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-blue-600" />
+                <span className="font-medium">
+                  {shouldShowReviewButton() && "This loan requires review"}
+                  {shouldShowDisburseButton() && "This loan is approved for disbursement"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {shouldShowReviewButton() && (
+                  <Button
+                    onClick={() => setShowReviewModal(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Review Loan
+                  </Button>
+                )}
+                {shouldShowDisburseButton() && (
+                  <Button
+                    onClick={() => setShowDisburseModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Disburse Loan
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -273,7 +365,7 @@ const LoanDetails = () => {
               </div>
             </div>
             
-            {group.name && (
+            {group?.name && (
               <>
                 <Separator />
                 <div>
@@ -281,8 +373,8 @@ const LoanDetails = () => {
                   <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">{group.name}</p>
-                      <p className="text-xs text-muted-foreground">{group.description}</p>
+                      <p className="text-sm font-medium">{group?.name}</p>
+                      <p className="text-xs text-muted-foreground">{group?.description}</p>
                     </div>
                   </div>
                 </div>
@@ -485,6 +577,27 @@ const LoanDetails = () => {
           </div>
         </CardContent>
       </Card>
+      <LoanReviewForm
+        show={showReviewModal}
+        onHide={() => setShowReviewModal(false)}
+        loanId={loan?._id}
+        loanDetails={loan}
+        onReviewSuccess={() => {
+          setShowReviewModal(false);
+          setSelectedLoan(null);
+        }}
+      />
+
+      <LoanDisbursementForm
+        show={showDisburseModal}
+        onHide={() => setShowDisburseModal(false)}
+        loanId={loan?._id}
+        loanDetails={loan}
+        onDisburseSuccess={() => {
+          setShowDisburseModal(false);
+          setSelectedLoan(null);
+        }}
+      />
     </div>
   )
 }

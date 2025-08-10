@@ -40,7 +40,12 @@ import {
   X,
   User,
   MessageSquare,
-  Loader2
+  Loader2,
+  LayoutDashboard,
+  UserSquare2,
+  NotebookPen,    
+  UserRoundCog,
+  Handshake
 } from 'lucide-react';
 import { 
   Card, 
@@ -82,10 +87,17 @@ import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { getGroupDetails, reviewJoinRequest, getJoinRequests } from '../../actions/groupActions';
+import { getGroupLoans } from '@/actions/loanActions';
 import GroupSettingsEditor from './GroupSettingsEditor';
 import GroupMembers from './GroupMembers';
 import { formatCurrency } from '@/lib/utils'
 import GroupFund from './GroupFund';
+import ChairPage from './ChairPage';
+import SecretaryPage from './SecretaryPage';
+import TreasurerPage from './TreasurerPage';
+import GroupTransferOwnership from './GroupTransferOwnership';
+import GroupLoans from './GroupLoans';
+
 
 const GroupDetails = () => {
   const dispatch = useDispatch();
@@ -107,11 +119,11 @@ const GroupDetails = () => {
   const [transactionFilter, setTransactionFilter] = useState('all');
   const [memberFilter, setMemberFilter] = useState('all');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
    useEffect(() => {
     if (userInfo && id) {
       dispatch(getGroupDetails(id));
       dispatch(getJoinRequests(id));
+      dispatch(getGroupLoans(id));
     } else {
       navigate('/login');
     }
@@ -122,17 +134,27 @@ const GroupDetails = () => {
 
   const groupReviewJoinRequest = useSelector((state) => state.groupReviewJoinRequest);
   const { loading: joinRequestloading, error: joinRequesterror, joinRequest, success: joinRequestsuccess } = groupReviewJoinRequest;
+
+  const groupLoansList = useSelector((state) => state.groupLoansList);
+  const { loading: loansLoading, error: loansError, loans } = groupLoansList;
   
   const { joinRequests = [], loading: loadingRequests, error: errorRequests } = useSelector(
       (state) => state.groupGetJoinRequests || {}
     );
 
-  console.log("Test approval", joinRequestloading, joinRequesterror, joinRequest, joinRequestsuccess)
+  // console.log("Test approval", joinRequestloading, joinRequesterror, joinRequest, joinRequestsuccess)
 
   // Check if current user is admin
   const isAdmin = group?.admins?.some(admin => admin._id === userInfo?.user?._id);
   const isOwner = group?.createdBy?._id === userInfo?.user?._id; 
   const currentMember = group?.members?.find(member => member.user._id === userInfo?.user?._id);
+  const Role = currentMember?.role;
+
+  const myloans = loans?.filter(
+        (loan) => loan?.loanType === 'personal' && loan?.user?._id === userInfo?.user?._id && (loan?.status === 'disbursed' || loan?.status === 'active')
+    );
+
+
 
   // Function to trigger refresh
   const triggerRefresh = () => {
@@ -593,7 +615,7 @@ const GroupDetails = () => {
         )}
           
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle>Members ({filteredMembers.length})</CardTitle>
             <div className="flex items-center gap-2">
               <Select value={memberFilter} onValueChange={setMemberFilter}>
@@ -620,7 +642,7 @@ const GroupDetails = () => {
           <CardContent>
             <div className="space-y-4">
               {filteredMembers?.map((member) => (
-                <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={member._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <Avatar>
                       <AvatarFallback>
@@ -746,7 +768,7 @@ const GroupDetails = () => {
 
         {/* Transactions List */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle>Recent Transactions</CardTitle>
             <div className="flex items-center gap-2">
               <Select value={transactionFilter} onValueChange={setTransactionFilter}>
@@ -768,7 +790,7 @@ const GroupDetails = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -890,7 +912,6 @@ const GroupDetails = () => {
       setDecisionLoading(null);
     };
 
-    console.log('Join Requests type shii', joinRequests)
 
     if (joinRequests?.joinRequests?.length === 0) {
       return (
@@ -1012,6 +1033,11 @@ const GroupDetails = () => {
     if (activeTab === 'members') return <MembersTab />;
     if (activeTab === 'transactions') return <TransactionsTab />;
     if (activeTab === 'requests') return <JoinRequestsTab />;
+    if (activeTab === 'chair') return <ChairPage group={group} />;
+    if (activeTab === 'secretary') return <SecretaryPage group={group} />;
+    if (activeTab === 'treasurer') return <TreasurerPage group={group} />;
+    if (activeTab === 'ownership') return <GroupTransferOwnership group={group} />;
+    if (activeTab === 'loans') return <GroupLoans loans={loans} userInfo={userInfo} Role={Role} />;
     return <OverviewTab />;
   };
 
@@ -1048,13 +1074,12 @@ const GroupDetails = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <Button className="hidden md:block" variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
         </Button>
         <div className="space-x-2 flex items-center">
-          <h1 className="text-2xl font-bold">{group.name}</h1>
+          <h1 className="text-muted-foreground">{group.name}</h1>
           {getGroupTypeBadge(group.groupType)}
           {getStatusBadge(group.isActive ? 'active' : 'suspended')}
         </div>
@@ -1062,13 +1087,54 @@ const GroupDetails = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="requests">Join Requests</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-5 sm:flex sm:justify-start sm:space-x-2 rounded-xl bg-muted shadow-sm p-1">
+          <TabsTrigger value="overview" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <LayoutDashboard className="h-5 w-5" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="members" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <Users className="h-5 w-5" />
+            <span className="hidden sm:inline">Members</span>
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <UserPlus className="h-5 w-5" />
+            <span className="hidden sm:inline">Requests</span>
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <FileText className="h-5 w-5" />
+            <span className="hidden sm:inline">Transactions</span>
+          </TabsTrigger>
+          {Role === "chair" &&(
+          <TabsTrigger value="chair" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <UserSquare2 className="h-5 w-5" />
+            <span className="hidden sm:inline">Chair</span>
+          </TabsTrigger>
+          )}
+          {Role == "secretary" &&(
+          <TabsTrigger value="secretary" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+             <NotebookPen className="h-5 w-5" />
+            <span className="hidden sm:inline">Secretary</span>
+          </TabsTrigger>
+          )}
+          {Role == "treasurer" &&(
+          <TabsTrigger value="treasurer" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <Wallet className="h-5 w-5" />
+            <span className="hidden sm:inline">Treasurer</span>
+          </TabsTrigger>
+          )}
+          {Role == "admin" &&(
+          <TabsTrigger value="ownership" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <UserRoundCog className="h-5 w-5" />
+            <span className="hidden sm:inline">Transfer Ownership</span>
+          </TabsTrigger>
+          )}
+           <TabsTrigger value="loans" className="w-full flex flex-col items-center sm:flex-row sm:gap-2 sm:justify-center">
+            <Handshake className="h-5 w-5" />
+            <span className="hidden sm:inline">Group Loans</span>
+          </TabsTrigger>
         </TabsList>
-        <div>
+
+        <div className="mt-4">
           {renderContent()}
         </div>
       </Tabs>
@@ -1096,11 +1162,15 @@ const GroupDetails = () => {
             />
 
             <GroupFund
+              scenario="USER_CONTRIBUTION" 
+              defaultTab="wallet"
+              title="Make a Contribution"
               isOpen={showFundModal}
               onClose={() => setShowFundModal(false)}
               groupId={group._id}
               currentUser={userInfo?.user}
               isAdmin={isAdmin}
+              myloans={myloans}
               isTreasurer={currentMember?.role === 'treasurer'}
             />
     </div>

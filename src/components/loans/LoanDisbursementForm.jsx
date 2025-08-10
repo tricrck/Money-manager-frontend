@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Container, Alert } from 'react-bootstrap';
+import { Modal, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { disburseLoan } from '../../actions/loanActions';
-import { getLoanDetails } from '../../actions/loanActions';
-import { useParams } from 'react-router-dom';
 
-const LoanDisbursementForm = ({  history }) => {
-  const loanId = useParams();
-
+const LoanDisbursementForm = ({
+  show,
+  onHide,
+  loanId,
+  loanDetails = null,
+  onDisburseSuccess
+}) => {
   const [disbursedAmount, setDisbursedAmount] = useState(0);
-  const [disbursementDate, setDisbursementDate] = useState('');
 
   const dispatch = useDispatch();
-
-  const loanDetails = useSelector((state) => state.loanDetails);
-  const { loading: loadingDetails, error: errorDetails, loan } = loanDetails;
 
   const loanDisburse = useSelector((state) => state.loanDisburse);
   const { loading: loadingDisburse, error: errorDisburse, success: successDisburse } = loanDisburse;
@@ -22,64 +20,106 @@ const LoanDisbursementForm = ({  history }) => {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 
+
+
   useEffect(() => {
-    if (!userInfo) {
-      history.push('/login');
-    } else {
-      if (!loan || loan._id !== loanId.id) {
-        dispatch(getLoanDetails(loanId.id));
-      } else {
-        setDisbursedAmount(loan.principalAmount);
-      }
+    if (show) {
+      setDisbursedAmount(loanDetails?.principalAmount || 0);
     }
-  }, [dispatch, history, loanId.id, loan, userInfo]);
+  }, [show, loanId, dispatch]);
+
+  useEffect(() => {
+    if (successDisburse) {
+      if (onDisburseSuccess) onDisburseSuccess();
+      onHide();
+    }
+  }, [successDisburse, onDisburseSuccess, onHide]);
 
   const submitHandler = (e) => {
     e.preventDefault();
+
     const disbursementData = {
       disbursedAmount: Number(disbursedAmount),
-      disbursementDate: disbursementDate || new Date().toISOString(),
+      disbursementDate: new Date().toISOString(),
       status: 'disbursed',
     };
+
     dispatch(disburseLoan(loanId, disbursementData));
   };
 
   return (
-    <Container className="py-5">
-      <h2 className="mb-4">Loan Disbursement</h2>
-      {errorDetails && <Alert variant="danger">{errorDetails}</Alert>}
-      {errorDisburse && <Alert variant="danger">{errorDisburse}</Alert>}
-      <Form onSubmit={submitHandler}>
-        <Form.Group controlId="disbursedAmount" className="mb-3">
-          <Form.Label>Disbursed Amount</Form.Label>
-          <Form.Control
-            type="number"
-            placeholder="Enter disbursed amount"
-            value={disbursedAmount}
-            onChange={(e) => setDisbursedAmount(e.target.value)}
-            required
-          />
-        </Form.Group>
+    <Modal
+      show={show}
+      onHide={onHide}
+      size="lg"
+      centered
+      backdrop="static"
+    >
+      <Modal.Header closeButton className="border-bottom-0 pb-0">
+        <Modal.Title>Disburse Loan</Modal.Title>
+      </Modal.Header>
 
-        <Form.Group controlId="disbursementDate" className="mb-3">
-          <Form.Label>Disbursement Date</Form.Label>
-          <Form.Control
-            type="date"
-            value={disbursementDate}
-            onChange={(e) => setDisbursementDate(e.target.value)}
-          />
-        </Form.Group>
+      <Modal.Body className="pt-0">
+        {loanDetails && (
+          <div className="mb-3">
+            <h6>Loan Details</h6>
+            <Row>
+              <Col xs={6} md={4}>
+                <small className="text-muted">Amount:</small>
+                <p>${loanDetails.principalAmount?.toLocaleString()}</p>
+              </Col>
+              <Col xs={6} md={4}>
+                <small className="text-muted">Borrower:</small>
+                <p>{loanDetails.user?.name}</p>
+              </Col>
+              <Col xs={12} md={4}>
+                <small className="text-muted">Status:</small>
+                <p className={`badge bg-${loanDetails.status === 'disbursed' ? 'success' : 'warning'}`}>
+                  {loanDetails.status}
+                </p>
+              </Col>
+            </Row>
+          </div>
+        )}
+        {loadingDisburse && <Alert variant="info">Processing...</Alert>}
+        {successDisburse && <Alert variant="success">Loan disbursed successfully!</Alert>}
+        {errorDisburse && <Alert variant="danger">{errorDisburse}</Alert>}
 
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={loadingDisburse}
-          className="mt-4"
-        >
-          {loadingDisburse ? 'Processing...' : 'Disburse Loan'}
-        </Button>
-      </Form>
-    </Container>
+        <Form onSubmit={submitHandler}>
+          <Row>
+            <Col md={6}>
+              <Form.Group controlId="disbursedAmount" className="mb-3">
+                <Form.Label>Disbursed Amount</Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="Enter disbursed amount"
+                  value={disbursedAmount}
+                  onChange={(e) => setDisbursedAmount(e.target.value)}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <div className="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <Button
+              variant="outline-secondary"
+              onClick={onHide}
+              className="me-md-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={loadingDisburse}
+            >
+              {loadingDisburse ? 'Processing...' : 'Disburse Loan'}
+            </Button>
+          </div>
+        </Form>
+      </Modal.Body>
+    </Modal>
   );
 };
 

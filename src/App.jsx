@@ -4,7 +4,7 @@ import { Container } from 'react-bootstrap';
 import { Button } from '@/components/ui/button';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import ProfessionalDashboard from './components/ProfessionalDashboard';
+import ProfessionalDashboard from './components/Dashboard';
 
 // Import all your existing components
 import LoanList from './components/loans/LoanList';
@@ -15,6 +15,7 @@ import LoanDisbursementForm from './components/loans/LoanDisbursementForm';
 import LoanRepaymentForm from './components/loans/LoanRepaymentForm';
 import LoanStatistics from './components/loans/LoanStatistics';
 import MyLoanList from './components/loans/MyLoanList';
+import LoanGuarantorLoans from './components/loans/GuarantorLoans';
 
 import GroupList from './components/groups/GroupList';
 import GroupForm from './components/groups/GroupForm';
@@ -29,6 +30,7 @@ import WalletDetails from './components/wallet/WalletDetails';
 import DepositForm from './components/wallet/DepositForm';
 import WithdrawForm from './components/wallet/WithdrawForm';
 import TransactionHistory from './components/wallet/TransactionHistory';
+import Statements from './components/wallet/Statements';
 
 import PaymentHistory from './components/payments/PaymentHistory';
 import MpesaPayment from './components/payments/MpesaPayment';
@@ -42,11 +44,16 @@ import AdminAnalytics from './components/payments/AdminAnalytics';
 import AdminSettings from './components/admin/AdminSettings';
 
 import LoginForm from './components/users/LoginForm';
+import ForgotPassword from './components/users/ForgotPassword';
+import ResetPassword from './components/users/ResetPassword'
 import UserList from './components/users/UserList';
 import UserForm from './components/users/UserForm';
 import UserDetails from './components/users/UserDetails';
 import Home from './components/public/Home';
 import './index.css';
+import UserDistributionMap from './components/users/UserDistributionMap';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Layout wrapper component for dashboard pages
 const DashboardLayout = ({ children }) => {
@@ -70,6 +77,7 @@ const PublicLayout = ({ children }) => {
 
 const App = () => {
   return (
+    <>
     <Routes>
       {/* Root redirect to dashboard */}
       <Route path="/" element={<ProfessionalDashboard />} />
@@ -105,6 +113,16 @@ const App = () => {
           <UserDetails />
         </DashboardLayout>
       } />
+      <Route path="/forgot-password" element={
+        <PublicLayout>
+          <ForgotPassword />
+        </PublicLayout>
+      } />
+      <Route path="/reset-password/:token" element={
+        <PublicLayout>
+          <ResetPassword />
+        </PublicLayout>
+      } />
       <Route path="/users" element={
         <DashboardLayout>
           <UserList />
@@ -137,6 +155,16 @@ const App = () => {
           <LoanForm />
         </DashboardLayout>
       } />
+      <Route path="/loans/statistics" element={
+        <DashboardLayout>
+          <LoanStatistics />
+        </DashboardLayout>
+      } />
+      <Route path="/loans/guarantors" element={
+        <DashboardLayout>
+          <LoanGuarantorLoans />
+        </DashboardLayout>
+      } />
       <Route path="/loans/:loanId" element={
         <DashboardLayout>
           <LoanDetails />
@@ -162,11 +190,7 @@ const App = () => {
           <LoanRepaymentForm />
         </DashboardLayout>
       } />
-      <Route path="/loans/statistics" element={
-        <DashboardLayout>
-          <LoanStatistics />
-        </DashboardLayout>
-      } />
+      
 
       {/* Group Routes */}
       <Route path="/groups" element={
@@ -214,6 +238,11 @@ const App = () => {
       <Route path="/wallet" element={
         <DashboardLayout>
           <WalletDetails />
+        </DashboardLayout>
+      } />
+      <Route path="/wallet/statements" element={
+        <DashboardLayout>
+          <Statements />
         </DashboardLayout>
       } />
       <Route path="/wallet/:userId" element={
@@ -277,7 +306,7 @@ const App = () => {
       {/* Transaction UI Routes */}
       <Route path="/transactions" element={
         <DashboardLayout>
-          <Transactions />
+          <TransactionHistory />
         </DashboardLayout>
       } />
 
@@ -292,6 +321,11 @@ const App = () => {
           <UserList />
         </DashboardLayout>
       } />
+      <Route path="/admin/users/map" element={
+        <DashboardLayout>
+          <UserDistributionMap />
+        </DashboardLayout>
+      } />
       <Route path="/admin/groups" element={
         <DashboardLayout>
           <AllGroupList />
@@ -302,14 +336,24 @@ const App = () => {
           <LoanList />
         </DashboardLayout>
       } />
+      <Route path="/admin/loans/:loanId" element={
+        <DashboardLayout>
+          <LoanDetails />
+        </DashboardLayout>
+      } />
       <Route path="/admin/settings" element={
         <DashboardLayout>
           <AdminSettings />
         </DashboardLayout>
       } />
-      <Route path="/admin/user-management" element={
+      <Route path="/admin/users" element={
         <DashboardLayout>
           <UserList />
+        </DashboardLayout>
+      } />
+      <Route path="/admin/users/:id" element={
+        <DashboardLayout>
+          <UserDetails />
         </DashboardLayout>
       } />
 
@@ -333,6 +377,8 @@ const App = () => {
       {/* Catch all route - redirect to dashboard */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    <ToastContainer position="top-right" autoClose={5000} />
+    </>
   );
 };
 

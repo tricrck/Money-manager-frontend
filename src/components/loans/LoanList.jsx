@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import moment from 'moment';
 import { listLoans } from '../../actions/loanActions';
 
@@ -21,10 +21,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import LoanReviewForm from '../loans/LoanReviewForm';
+import LoanDisbursementForm from './LoanDisbursementForm';
 
 const LoanList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showDisburseModal, setShowDisburseModal] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState(null);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -42,8 +47,6 @@ const LoanList = () => {
 
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
-
-  console.log(loans)
 
   useEffect(() => {
     if (userInfo && userInfo.user.role === 'Admin') {
@@ -112,14 +115,14 @@ const LoanList = () => {
     const statusConfig = {
       pending: { variant: 'secondary', icon: Clock, label: 'Pending Review', color: 'bg-yellow-100 text-yellow-800' },
       approved: { variant: 'default', icon: CheckCircle, label: 'Approved', color: 'bg-blue-100 text-blue-800' },
+      disbursed: { variant: 'default', icon: DollarSign, label: 'Disbursed', color: 'bg-green-100 text-green-800' },
       active: { variant: 'default', icon: Activity, label: 'Active', color: 'bg-green-100 text-green-800' },
       completed: { variant: 'default', icon: CheckCircle, label: 'Completed', color: 'bg-green-100 text-green-800' },
       rejected: { variant: 'destructive', icon: XCircle, label: 'Rejected', color: 'bg-red-100 text-red-800' },
       defaulted: { variant: 'destructive', icon: AlertTriangle, label: 'Defaulted', color: 'bg-red-100 text-red-800' },
       suspended: { variant: 'secondary', icon: PauseCircle, label: 'Suspended', color: 'bg-gray-100 text-gray-800' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
+    };  
+    const config = statusConfig[status];
     const IconComponent = config.icon;
     
     return (
@@ -224,10 +227,6 @@ const LoanList = () => {
           <Button variant="outline" onClick={() => navigate('/admin/reports')}>
             <FileText className="w-4 h-4 mr-2" />
             Generate Report
-          </Button>
-          <Button onClick={() => navigate('/admin/loan-settings')}>
-            <Settings className="w-4 h-4 mr-2" />
-            Loan Settings
           </Button>
         </div>
       </div>
@@ -393,7 +392,7 @@ const LoanList = () => {
                 <span className="font-medium">{selectedLoans.length} loans selected</span>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => setShowBulkActions(!showBulkActions)}>
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Approve Selected
                 </Button>
@@ -592,11 +591,13 @@ const LoanList = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
                               <DropdownMenuLabel>Loan Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => navigate(`/admin/loan/${loan._id}`)}>
+                              <Link to={`/admin/loans/${loan._id}`}>
+                              <DropdownMenuItem>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Full Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/admin/user/${loan.user?._id}`)}>
+                              </Link>
+                              <DropdownMenuItem onClick={() => navigate(`/admin/users/${loan.user?._id}`)}>
                                 <User className="mr-2 h-4 w-4" />
                                 View Borrower Profile
                               </DropdownMenuItem>
@@ -606,11 +607,34 @@ const LoanList = () => {
                                 <>
                                   <DropdownMenuItem className="text-green-600">
                                     <CheckCircle className="mr-2 h-4 w-4" />
-                                    Approve Loan
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => {
+                                         setSelectedLoan(loan);
+                                         setShowReviewModal(true);
+                                      }}
+                                      >
+                                      Review
+                                   </Button>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Reject Loan
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              {loan.status === 'approved' && (
+                                <>
+                                  <DropdownMenuItem>
+                                    <PauseCircle className="mr-2 h-4 w-4" />
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => {
+                                         setSelectedLoan(loan);
+                                         setShowDisburseModal(true);
+                                      }}
+                                      >
+                                        Disburse Loan
+                                      </Button>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
@@ -709,6 +733,27 @@ const LoanList = () => {
           )}
         </CardContent>
       </Card>
+      <LoanReviewForm
+        show={showReviewModal}
+        onHide={() => setShowReviewModal(false)}
+        loanId={selectedLoan?._id}
+        loanDetails={selectedLoan}
+        onReviewSuccess={() => {
+          setShowReviewModal(false);
+          setSelectedLoan(null);
+        }}
+      />
+
+      <LoanDisbursementForm
+        show={showDisburseModal}
+        onHide={() => setShowDisburseModal(false)}
+        loanId={selectedLoan?._id}
+        loanDetails={selectedLoan}
+        onDisburseSuccess={() => {
+          setShowDisburseModal(false);
+          setSelectedLoan(null);
+        }}
+      />
     </div>
   );
 };

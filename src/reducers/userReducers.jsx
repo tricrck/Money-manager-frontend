@@ -21,8 +21,21 @@ import {
     USER_PROFILE_PICTURE_UPLOAD_REQUEST,
     USER_PROFILE_PICTURE_UPLOAD_SUCCESS,
     USER_PROFILE_PICTURE_UPLOAD_FAIL,
+    USER_PASSWORD_RESET_LINK_REQUEST,
+    USER_PASSWORD_RESET_LINK_SUCCESS,
+    USER_PASSWORD_RESET_LINK_FAIL,
+    USER_PASSWORD_RESET_REQUEST,
+    USER_PASSWORD_RESET_SUCCESS,
+    USER_PASSWORD_RESET_FAIL
   } from '../constants/userConstants';
-  
+
+  import {
+  SAVE_PUSH_TOKEN_REQUEST,
+  SAVE_PUSH_TOKEN_SUCCESS,
+  SAVE_PUSH_TOKEN_FAIL,
+} from '../constants/pushConstants';
+
+
   export const userRegisterReducer = (state = {}, action) => {
     switch (action.type) {
       case USER_REGISTER_REQUEST:
@@ -115,3 +128,44 @@ import {
         return state;
     }
   };
+
+  // Reducer for sending reset link
+export const passwordResetLinkReducer = (state = {}, action) => {
+  switch (action.type) {
+    case USER_PASSWORD_RESET_LINK_REQUEST:
+      return { loading: true };
+    case USER_PASSWORD_RESET_LINK_SUCCESS:
+      return { loading: false, success: true, message: action.payload };
+    case USER_PASSWORD_RESET_LINK_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Reducer for resetting password
+export const passwordResetReducer = (state = {}, action) => {
+  switch (action.type) {
+    case USER_PASSWORD_RESET_REQUEST:
+      return { loading: true };
+    case USER_PASSWORD_RESET_SUCCESS:
+      return { loading: false, success: true, message: action.payload };
+    case USER_PASSWORD_RESET_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const pushTokenReducer = (state = {}, action) => {
+  switch (action.type) {
+    case SAVE_PUSH_TOKEN_REQUEST:
+      return { loading: true };
+    case SAVE_PUSH_TOKEN_SUCCESS:
+      return { loading: false, success: true };
+    case SAVE_PUSH_TOKEN_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};

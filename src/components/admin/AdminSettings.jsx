@@ -94,6 +94,9 @@ const AdminSettings = () => {
     defaultInterestRate: 15,
     maxLoanAmount: 500000,
     minLoanAmount: 1000,
+    maxLoanMultiplier: 3,
+    maxLoanDuration: 12,
+    guarantorsRequired: 5,
     
     // Notification Settings
     emailNotifications: true,
@@ -202,12 +205,12 @@ const AdminSettings = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Admin Settings</h1>
           <p className="text-muted-foreground">Manage system configuration and preferences</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between space-x-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -255,7 +258,7 @@ const AdminSettings = () => {
             {updateLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-2 mr-2" />
             )}
             Save Changes
           </Button>
@@ -680,6 +683,42 @@ const AdminSettings = () => {
                 />
               </div>
               
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="maxLoanMult">Max Loan Multiplier (*)</Label>
+                <Input
+                  id="maxLoanMult"
+                  type="number"
+                  value={settings.maxLoanMultiplier}
+                  onChange={(e) => handleSettingChange('maxLoanMultiplier', parseInt(e.target.value))}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="maxLoanDur">Max Loan Duration (days)</Label>
+                <Input
+                  id="maxLoanDur"
+                  type="number"
+                  value={settings.maxLoanDuration}
+                  onChange={(e) => handleSettingChange('maxLoanDuration', parseInt(e.target.value))}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="guarantors">Guarantors Required for group a group loan (Number)</Label>
+                <Input
+                  id="guarantors"
+                  type="number"
+                  value={settings.guarantorsRequired}
+                  onChange={(e) => handleSettingChange('guarantorsRequired', parseInt(e.target.value))}
+                />
+              </div>
+
               <Separator />
               
               <div className="space-y-2">

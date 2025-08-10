@@ -21,7 +21,18 @@ import {
     USER_PROFILE_PICTURE_UPLOAD_REQUEST,
     USER_PROFILE_PICTURE_UPLOAD_SUCCESS,
     USER_PROFILE_PICTURE_UPLOAD_FAIL,
+    USER_PASSWORD_RESET_LINK_REQUEST,
+    USER_PASSWORD_RESET_LINK_SUCCESS,
+    USER_PASSWORD_RESET_LINK_FAIL,
+    USER_PASSWORD_RESET_REQUEST,
+    USER_PASSWORD_RESET_SUCCESS,
+    USER_PASSWORD_RESET_FAIL
   } from '../constants/userConstants';
+  import {
+  SAVE_PUSH_TOKEN_REQUEST,
+  SAVE_PUSH_TOKEN_SUCCESS,
+  SAVE_PUSH_TOKEN_FAIL,
+} from '../constants/pushConstants';
   import * as api from '../api/users';
   
   export const register = (userData) => async (dispatch) => {
@@ -195,3 +206,61 @@ import {
       });
     }
   };
+
+  export const sendResetLink = (email) => async (dispatch) => {
+  try {
+    dispatch({ type: USER_PASSWORD_RESET_LINK_REQUEST });
+
+    const { data } = await api.sendPasswordResetLink(email);
+
+    dispatch({
+      type: USER_PASSWORD_RESET_LINK_SUCCESS,
+      payload: data.message,
+    });
+  } catch (error) {
+    dispatch({
+      type: USER_PASSWORD_RESET_LINK_FAIL,
+      payload:
+        error.response?.data?.message || error.message,
+    });
+  }
+};
+
+// Reset password using token
+export const resetPassword = (token, newPassword) => async (dispatch) => {
+  try {
+    dispatch({ type: USER_PASSWORD_RESET_REQUEST });
+
+    const { data } = await api.resetPassword(token, newPassword);
+
+    dispatch({
+      type: USER_PASSWORD_RESET_SUCCESS,
+      payload: data.message,
+    });
+  } catch (error) {
+    dispatch({
+      type: USER_PASSWORD_RESET_FAIL,
+      payload:
+        error.response?.data?.error,
+    });
+  }
+};
+
+export const savePushToken = (token) => async (dispatch, getState) => {
+  try {
+    dispatch({ type: SAVE_PUSH_TOKEN_REQUEST });
+
+    const { data } = await api.pushToken(token);
+    console.log('Push token saved:', data);
+
+    dispatch({
+      type: SAVE_PUSH_TOKEN_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: SAVE_PUSH_TOKEN_FAIL,
+      payload: error.response?.data?.message || error.message,
+    });
+  }
+};

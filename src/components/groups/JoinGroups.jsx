@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   listMyInvitations,
   getMyJoinRequests,
-  reviewJoinRequest,
+  respondToInvitation,
 } from '../../actions/groupActions';
 import {
   Card,
@@ -34,13 +34,14 @@ const JoinGroups = () => {
   }, [dispatch]);
 
   const handleResponse = (groupId, invitationId, response) => {
-    dispatch(reviewJoinRequest(groupId, invitationId, { response }));
+    console.log(`Responding to invitation ${invitationId} for group ${groupId} with response: ${response}`);
+    dispatch(respondToInvitation(groupId, invitationId, { response }));
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+      <div className="flex flex-col gap-2 items-start justify-between sm:flex-row sm:items-center">
+        <h1 className="text-3xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
           <ShieldCheck className="h-7 w-7 text-primary" />
           Join Groups
         </h1>

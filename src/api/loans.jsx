@@ -16,5 +16,6 @@ export const getUserLoans = (userId) => api.get(`/loans/user/${userId}`);
 export const getGroupLoans = (groupId) => api.get(`/loans/group/${groupId}`);
 export const applyForLoan = (groupId, loanData) => api.post(`/loans/apply/${groupId}`, loanData);
 export const addGuarantor = (loanId, guarantorId) => api.post(`/loans/${loanId}/guarantor/${guarantorId}`);
+export const getGuarantorLoans = (guarantorId) => api.get(`/loans/guarantor/${guarantorId}`);
 export const guarantorApproval = (loanId, guarantorId, approvalData) => api.post(`/loans/${loanId}/guarantor/${guarantorId}/approval`, approvalData);
 export const repayLoan = (loanId, repaymentData) => api.post(`/loans/${loanId}/repay`, repaymentData);

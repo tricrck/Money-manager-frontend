@@ -781,13 +781,12 @@ const GroupForm = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 items-start justify-between sm:flex-row sm:items-center">
         <Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          <ArrowLeft className="h-4 w-4 mr-2 hidden sm:inline" />
         </Button>
         <div className="text-center">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl sm:text-2xl font-bold flex items-center gap-2">
             <Building2 className="h-6 w-6" />
             {isEditing ? 'Edit Group' : 'Create New Group'}
           </h1>

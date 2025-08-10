@@ -73,10 +73,11 @@ const WalletDetails = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Wallet Dashboard</h1>
+      <div className="flex flex-col gap-2 items-start justify-between sm:flex-row sm:items-center">
+        <h1 className="text-xl sm:text-2xl font-bold">Wallet Dashboard</h1>
         <Button 
           variant="outline" 
+          className="w-full sm:w-auto" 
           onClick={() => navigate(`/wallet/${userId}/transactions`)}
         >
           <History className="mr-2 h-4 w-4" />
@@ -85,7 +86,7 @@ const WalletDetails = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
             <WalletCards className="h-4 w-4 text-muted-foreground" />
@@ -100,7 +101,7 @@ const WalletDetails = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
             <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />
@@ -115,7 +116,7 @@ const WalletDetails = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
             <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
@@ -178,46 +179,6 @@ const WalletDetails = () => {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No transactions yet</p>
-              ) : (
-                transactions.slice(0, 5).map((tx) => (
-                  <div key={tx._id} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {tx.type === 'deposit' ? (
-                        <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">{tx.description || 'Transaction'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(tx.date).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {tx.type === 'deposit' ? '+' : '-'}
-                        {formatCurrency(tx.amount || 0)}
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {tx.paymentMethod || 'Unknown'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Quick Deposit</CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,6 +232,48 @@ const WalletDetails = () => {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No transactions yet</p>
+              ) : (
+                transactions.slice(0, 5).map((tx) => (
+                  <div key={tx._id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      {tx.type === 'deposit' ? (
+                        <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{tx.description || 'Transaction'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(tx.date).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {tx.type === 'deposit' ? '+' : '-'}
+                        {formatCurrency(tx.amount || 0)}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {tx.paymentMethod || 'Unknown'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        
       </div>
     </div>
   )

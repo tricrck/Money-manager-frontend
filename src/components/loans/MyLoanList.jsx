@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
 import { getUserLoans } from '../../actions/loanActions';
-
+import { listMyGroups } from '../../actions/groupActions';
+import { LinkContainer } from 'react-router-bootstrap';
 import { 
   Building2, Users, Search, Filter, SortAsc, SortDesc, Eye, Edit, Trash2, 
   Plus, Download, AlertCircle, CheckCircle, Clock, DollarSign, TrendingUp, 
@@ -35,7 +36,8 @@ const MyLoansList = ({ history }) => {
   const userLoansList = useSelector((state) => state.userLoansList);
   const { loading, error, loans } = userLoansList;
 
-  console.log(loans)
+  const myGroups = useSelector((state) => state.myGroups);
+  const { myGroups: myGroupsList = [] } = myGroups;
 
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
@@ -45,10 +47,12 @@ const MyLoansList = ({ history }) => {
   useEffect(() => {
     if (userInfo) {
       dispatch(getUserLoans(userInfo?.user?._id));
+      dispatch(listMyGroups());
     } else {
       navigate('/login');
     }
   }, [dispatch, navigate, userInfo]);
+
 
   // Filter and sort loans
   const filteredLoans = loans?.filter(loan => {
@@ -89,6 +93,7 @@ const MyLoansList = ({ history }) => {
     const statusConfig = {
       pending: { variant: 'secondary', icon: Clock, label: 'Pending' },
       approved: { variant: 'default', icon: CheckCircle, label: 'Approved' },
+      disbursed: { variant: 'primary', icon: DollarSign, label: 'Disbursed' },
       active: { variant: 'default', icon: Activity, label: 'Active' },
       completed: { variant: 'default', icon: CheckCircle, label: 'Completed' },
       rejected: { variant: 'destructive', icon: AlertCircle, label: 'Rejected' },
@@ -154,16 +159,28 @@ const MyLoansList = ({ history }) => {
           <h1 className="text-3xl font-bold text-gray-900">My Loans</h1>
           <p className="text-gray-600 mt-1">Manage and track your loan applications</p>
         </div>
-        { isAdmin && (
-        <Button onClick={() => navigate('/loans/create')} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Apply for New Loan
-        </Button>)}
+        {myGroupsList.length > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <LinkContainer to="/loans/guarantors">
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Manage Guarantors
+            </Button>
+          </LinkContainer>
+
+          <LinkContainer to="/loans/create">
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Apply for New Loan
+            </Button>
+          </LinkContainer>
+        </div>
+      )}
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="hidden sm:inline">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -175,7 +192,7 @@ const MyLoansList = ({ history }) => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden sm:inline">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -189,7 +206,7 @@ const MyLoansList = ({ history }) => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hidden sm:inline">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -411,27 +428,35 @@ const MyLoansList = ({ history }) => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/loans/${loan._id}`)}>
+                             <LinkContainer to={`/loans/${loan._id}`}>
+                              <DropdownMenuItem>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
+                              </LinkContainer>
                               {loan.status === 'pending' && (
-                                <DropdownMenuItem onClick={() => navigate(`/loans/${loan._id}/edit`)}>
+                                <LinkContainer to={`/loans/${loan._id}/edit`}>
+                                <DropdownMenuItem>
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit Application
                                 </DropdownMenuItem>
+                                </LinkContainer>
                               )}
                               {loan.status === 'active' && (
-                                <DropdownMenuItem onClick={() => navigate(`/payment/${loan._id}`)}>
+                                <LinkContainer to={`/loans/${loan._id}/repayment`}>
+                                <DropdownMenuItem>
                                   <DollarSign className="mr-2 h-4 w-4" />
                                   Make Payment
                                 </DropdownMenuItem>
+                                </LinkContainer>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => navigate(`/loans/${loan._id}`)}>
+                              <LinkContainer to={`/loans/${loan._id}/repayment-schedule`}>
+                              <DropdownMenuItem>
                                 <Download className="mr-2 h-4 w-4" />
                                 Download Statement
                               </DropdownMenuItem>
+                              </LinkContainer>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

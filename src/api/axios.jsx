@@ -335,7 +335,6 @@ api.interceptors.response.use(
     else if (error.response && error.response.status === 404) {
       const url = config.url || '';
       const isUserEndpoint = url.includes('/users/') || 
-                            url.includes('/loans') || 
                             url.includes('/profile') ||
                             (url.includes('/users') && config.method?.toLowerCase() === 'get');
       

@@ -2,15 +2,18 @@ import {
   LOAN_CREATE_REQUEST,
   LOAN_CREATE_SUCCESS,
   LOAN_CREATE_FAIL,
+  LOAN_CREATE_RESET,
   LOAN_LIST_REQUEST,
   LOAN_LIST_SUCCESS,
   LOAN_LIST_FAIL,
   LOAN_DETAILS_REQUEST,
   LOAN_DETAILS_SUCCESS,
   LOAN_DETAILS_FAIL,
+  LOAN_DETAILS_RESET,
   LOAN_UPDATE_REQUEST,
   LOAN_UPDATE_SUCCESS,
   LOAN_UPDATE_FAIL,
+  LOAN_UPDATE_RESET,
   LOAN_DELETE_REQUEST,
   LOAN_DELETE_SUCCESS,
   LOAN_DELETE_FAIL,
@@ -55,6 +58,9 @@ import {
   LOAN_DOCUMENT_REMOVE_REQUEST,
   LOAN_DOCUMENT_REMOVE_SUCCESS,
   LOAN_DOCUMENT_REMOVE_FAIL,
+  LOAN_GUARANTOR_LOANS_REQUEST,
+  LOAN_GUARANTOR_LOANS_SUCCESS,
+  LOAN_GUARANTOR_LOANS_FAIL,
 } from '../constants/loanConstants';
 import * as api from '../api/loans';
 
@@ -69,13 +75,13 @@ export const createLoan = (loanData) => async (dispatch) => {
       payload: data,
     });
   } catch (error) {
-    console.error('Error creating loan:', error);
+    console.log('Error creating loan:', error);
     dispatch({
       type: LOAN_CREATE_FAIL,
       payload:
-        error.response && error.response.data.error
-          ? error.response.data.error
-          : error.error,
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.response.data.error,
     });
   }
 };
@@ -427,9 +433,36 @@ export const guarantorApproval = (loanId, guarantorId, approvalData) => async (d
     dispatch({
       type: LOAN_GUARANTOR_APPROVAL_FAIL,
       payload:
+        error.responseData && error.responseData.message
+          ? error.responseData.message
+          : error.message,
+    });
+  }
+};
+
+export const getGuarantorLoans = (guarantorId) => async (dispatch) => {
+  try {
+    dispatch({ type: LOAN_GUARANTOR_LOANS_REQUEST });
+
+    const { data } = await api.getGuarantorLoans(guarantorId);
+
+    dispatch({
+      type: LOAN_GUARANTOR_LOANS_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: LOAN_GUARANTOR_LOANS_FAIL,
+      payload:
         error.response && error.response.data.message
           ? error.response.data.message
           : error.message,
     });
   }
+};
+
+export const loanUpdateReset = () => (dispatch) => {
+  dispatch({ type: LOAN_UPDATE_RESET });
+  dispatch({ type: LOAN_CREATE_RESET });
+  dispatch({ type: LOAN_DETAILS_RESET })
 };

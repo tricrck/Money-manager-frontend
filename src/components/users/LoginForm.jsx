@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { login } from '../../actions/userActions';
 import { set } from 'lodash';
+import { LinkContainer } from 'react-router-bootstrap';
 
 const LoginFormSkeleton = () => (
   <div className="flex items-center justify-center">
@@ -339,15 +340,15 @@ const LoginForm = () => {
                     Remember me
                   </Label>
                 </div>
-                
+                <LinkContainer to={'/forgot-password'}>
                 <button
                   type="button"
-                  onClick={() => navigate('/forgot-password')}
                   disabled={loggingIn || isLockedOut}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 underline decoration-2 underline-offset-2"
                 >
                   Forgot password?
                 </button>
+                </LinkContainer>
               </div>
 
               {/* Submit Button */}

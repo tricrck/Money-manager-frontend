@@ -84,7 +84,6 @@ const GroupList = () => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-  console.log(myGroupsList)
 
   useEffect(() => {
     if (userInfo) {
@@ -280,8 +279,8 @@ const GroupList = () => {
 
   // Statistics Cards
   const StatsCards = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-      <Card className="hover:shadow-lg transition-shadow">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <Card className="hover:shadow-lg transition-shadow ">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">My Groups</CardTitle>
           <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -294,7 +293,7 @@ const GroupList = () => {
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="hover:shadow-lg transition-shadow hidden sm:inline">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Savings</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -307,7 +306,7 @@ const GroupList = () => {
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="hover:shadow-lg transition-shadow hidden sm:inline">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">My Contributions</CardTitle>
           <Target className="h-4 w-4 text-muted-foreground" />
@@ -320,7 +319,7 @@ const GroupList = () => {
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="hover:shadow-lg transition-shadow hidden sm:inline">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Network</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
@@ -756,9 +755,9 @@ const GroupList = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 items-start justify-between sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-3xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
             <Building2 className="h-8 w-8" />
             My Groups
           </h1>
@@ -782,7 +781,6 @@ const GroupList = () => {
       
       {myGroupsList.length > 0 && (
         <>
-          <ChartsSection />
           <FiltersSection />
           {viewMode === 'grid' ? <GridView /> : <TableView />}
         </>

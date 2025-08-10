@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Container, Alert } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { transferOwnership, getGroupDetails } from '../../actions/groupActions';
+import { transferOwnership } from '../../actions/groupActions';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 
-const GroupTransferOwnership = ({ history }) => {
+const GroupTransferOwnership = ({ group }) => {
   const { id } = useParams();
   const groupId = id;
-
   const navigate = useNavigate();
-
   const [newOwnerId, setNewOwnerId] = useState('');
-
   const dispatch = useDispatch();
-
-  const groupDetails = useSelector((state) => state.groupDetails);
-  const { loading: loadingDetails, error: errorDetails, group } = groupDetails;
 
   const groupTransferOwnership = useSelector((state) => state.groupTransferOwnership);
   const { loading: loadingTransfer, error: errorTransfer, success: successTransfer } = groupTransferOwnership;
@@ -24,32 +18,34 @@ const GroupTransferOwnership = ({ history }) => {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 
-  useEffect(() => {
-    if (userInfo) {
-      dispatch(getGroupDetails(groupId));
-    } else {
-        navigate('/login');
-    }
-  }, [dispatch, history, groupId, userInfo]);
+  // Check if current user is the group owner
+  const isOwner = group?.createdBy?._id === userInfo?.user?._id;
 
   useEffect(() => {
     if (successTransfer) {
-        navigate(`/groups/${groupId}`);
+      navigate(`/groups/${groupId}`);
     }
-  }, [history, groupId, successTransfer]);
+  }, [navigate, groupId, successTransfer]);
 
   const submitHandler = (e) => {
     e.preventDefault();
     dispatch(transferOwnership(groupId, newOwnerId));
   };
 
+  if (!isOwner) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="danger" className="mt-4">
+          <h4>Access Denied</h4>
+          <p>Only the group owner can transfer ownership of this group.</p>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
-    <Container className="py-5">
-      <Link to={`/groups/${groupId}`} className="btn btn-light my-3">
-        <FaArrowLeft /> Back to Group
-      </Link>
+    <div className="space-y-6">
       <h2 className="mb-4">Transfer Group Ownership</h2>
-      {errorDetails && <Alert variant="danger">{errorDetails}</Alert>}
       {errorTransfer && <Alert variant="danger">{errorTransfer}</Alert>}
       <Form onSubmit={submitHandler}>
         <Form.Group controlId="newOwner" className="mb-3">
@@ -62,10 +58,10 @@ const GroupTransferOwnership = ({ history }) => {
           >
             <option value="">Select a member</option>
             {group?.members
-              ?.filter((member) => member.status === 'active')
+              ?.filter((member) => member?.status === 'active' && member?.user?._id !== userInfo?.user?._id)
               .map((member) => (
-                <option key={member.user._id} value={member.user._id}>
-                  {member.user.name} ({member.role})
+                <option key={member?.user?._id} value={member?.user?._id}>
+                  {member?.user?.name} ({member?.role})
                 </option>
               ))}
           </Form.Control>
@@ -85,7 +81,7 @@ const GroupTransferOwnership = ({ history }) => {
           {loadingTransfer ? 'Transferring...' : 'Transfer Ownership'}
         </Button>
       </Form>
-    </Container>
+    </div>
   );
 };
 
