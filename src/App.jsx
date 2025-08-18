@@ -54,6 +54,7 @@ import './index.css';
 import UserDistributionMap from './components/users/UserDistributionMap';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import LogsPage from './components/admin/LogsPage';
 
 // Layout wrapper component for dashboard pages
 const DashboardLayout = ({ children }) => {
@@ -344,6 +345,11 @@ const App = () => {
       <Route path="/admin/settings" element={
         <DashboardLayout>
           <AdminSettings />
+        </DashboardLayout>
+      } />
+      <Route path="/admin/logs" element={
+        <DashboardLayout>
+          <LogsPage />
         </DashboardLayout>
       } />
       <Route path="/admin/users" element={

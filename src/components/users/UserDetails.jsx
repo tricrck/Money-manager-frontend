@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUserDetails } from '../../actions/userActions';
-import { listMyGroups } from '../../actions/groupActions';
+import { listMyGroups, listUserGroups } from '../../actions/groupActions';
 import { 
   Card, 
   CardHeader, 
@@ -51,19 +51,24 @@ const UserDetails = () => {
   const myGroups = useSelector((state) => state.myGroups);
   const { loading: loadingMy, error: errorMy, myGroups: myGroupsList = [] } = myGroups;
 
+  const { loading: LoadingUser, error: errorUser, userGroups } = useSelector((state) => state.userGroups);
+
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
   
-  const userId = id || userInfo?.user?._id;
-
+  const userId = id;
+  
   useEffect(() => {
-    if (userInfo) {
+    if (userInfo?.user?._id === userId) {
+      // Logged-in user's own profile
       dispatch(getUserDetails(userId));
       dispatch(listMyGroups());
     } else {
-      navigate('/login');
+      // Visiting another user’s profile
+      dispatch(getUserDetails(userId));
+      dispatch(listUserGroups(userId));
     }
-  }, [dispatch, navigate, userId, userInfo]);
+  }, [dispatch, userId, userInfo]);
 
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };

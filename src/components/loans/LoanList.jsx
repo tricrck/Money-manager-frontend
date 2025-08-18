@@ -485,14 +485,14 @@ const LoanList = () => {
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">
-                                {loan.user?.name || 'Unknown User'}
+                                {loan.group?.name || 'Unknown Group'}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {loan.user?.email}
+                                {loan.user?.name}
                               </div>
                               {loan.user?.phone && (
                                 <div className="text-xs text-gray-400">
-                                  {loan.user.phone}
+                                  {loan.user.email}
                                 </div>
                               )}
                             </div>

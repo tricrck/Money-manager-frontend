@@ -63,6 +63,7 @@ import {
   groupFundWalletReducer,
   groupPayMemberReducer,
   groupGetMyJoinRequestsReducer,
+  userGroupsReducer,
 } from './reducers/groupReducers';
 import {
   walletDetailsReducer,
@@ -90,7 +91,7 @@ import {
   serverInfoGetReducer,
   dbInfoGetReducer,
 } from './reducers/settingReducer';
-  
+import { logsListReducer } from './reducers/logReducers';
 
 
 const reducer = combineReducers({
@@ -154,6 +155,7 @@ const reducer = combineReducers({
   groupMemberContributions: groupMemberContributionsReducer,
   groupFundWallet: groupFundWalletReducer,
   groupPayMember: groupPayMemberReducer,
+  userGroups: userGroupsReducer,
 
 
   walletDetails: walletDetailsReducer,
@@ -179,6 +181,8 @@ const reducer = combineReducers({
   settingsReset: settingsResetReducer,
   serverInfoGet: serverInfoGetReducer,
   dbInfoGet: dbInfoGetReducer,
+
+  logsList: logsListReducer,
 });
 
 const userInfoFromStorage = localStorage.getItem('userInfo')

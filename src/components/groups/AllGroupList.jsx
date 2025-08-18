@@ -89,6 +89,8 @@ const AllGroupList = () => {
     }
   }, [dispatch, navigate, userInfo]);
 
+  console.log(groups);
+
   // Filter and sort groups
   const processedGroups = groups
     .filter(group => {
@@ -112,8 +114,8 @@ const AllGroupList = () => {
           bValue = b.members?.length || 0;
           break;
         case 'balance':
-          aValue = a.balance || 0;
-          bValue = b.balance || 0;
+          aValue = calculateGroupBalance(a);
+          bValue = calculateGroupBalance(b);
           break;
         case 'createdAt':
           aValue = new Date(a.createdAt);
@@ -195,6 +197,14 @@ const AllGroupList = () => {
     }
   };
 
+  const calculateGroupBalance = (group) => {
+    return (group.groupAccount?.balance || 0) + 
+          (group.savingsAccount?.balance || 0) + 
+          (group.loanAccount?.balance || 0) + 
+          (group.interestEarnedAccount?.balance || 0) + 
+          (group.finesAccount?.balance || 0);
+  };
+
   // Calculate statistics
   const stats = {
     total: groups.length,
@@ -202,8 +212,9 @@ const AllGroupList = () => {
     pending: groups.filter(g => g.status === 'pending').length,
     suspended: groups.filter(g => g.status === 'suspended').length,
     totalMembers: groups.reduce((sum, g) => sum + (g.members?.length || 0), 0),
-    totalBalance: groups.reduce((sum, g) => sum + (g.balance || 0), 0),
-    avgMembersPerGroup: groups.length ? (groups.reduce((sum, g) => sum + (g.members?.length || 0), 0) / groups.length).toFixed(1) : 0
+    totalBalance: groups.reduce((sum, group) => sum + calculateGroupBalance(group), 0),
+    avgMembersPerGroup: groups.length ? 
+      (groups.reduce((sum, g) => sum + (g.members?.length || 0), 0) / groups.length).toFixed(1) : 0
   };
 
   // Format currency
@@ -487,7 +498,7 @@ const AllGroupList = () => {
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(group.balance)}
+                        {formatCurrency(calculateGroupBalance(group))}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDate(group.createdAt)}

@@ -93,7 +93,8 @@ const ProfessionalDashboard = ({ children }) => {
       { icon: Users, label: 'User Management', path: '/admin/users', key: 'users' },
       { icon: Building2, label: 'Group Management', path: '/admin/groups', key: 'admin-groups' },
       { icon: CreditCard, label: 'Loans Management', path: '/admin/loans', key: 'admin-loans' },
-      { icon: Shield, label: 'System Settings', path: '/admin/settings', key: 'settings' }
+      { icon: Shield, label: 'System Settings', path: '/admin/settings', key: 'settings' },
+      { icon: FileText, label: 'System Logs', path: '/admin/logs', key: 'logs' }
     ];
 
     const groupAdminItems = [

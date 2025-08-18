@@ -79,7 +79,10 @@ import {
     GROUP_PAY_MEMBER_FAIL,
     GROUP_GET_MY_JOIN_REQUESTS_REQUEST,
     GROUP_GET_MY_JOIN_REQUESTS_SUCCESS,
-    GROUP_GET_MY_JOIN_REQUESTS_FAIL
+    GROUP_GET_MY_JOIN_REQUESTS_FAIL,
+    USER_GROUPS_REQUEST,
+    USER_GROUPS_SUCCESS,
+    USER_GROUPS_FAIL,
   } from '../constants/groupConstants';
   import * as api from '../api/groups';
   
@@ -605,6 +608,27 @@ export const payMember = (groupId, paymentData) => async (dispatch) => {
     dispatch({
       type: GROUP_PAY_MEMBER_FAIL,
       payload: error.response?.data?.message || error.message
+    });
+  }
+};
+
+export const listUserGroups = (userId) => async (dispatch) => {
+  try {
+    dispatch({ type: USER_GROUPS_REQUEST });
+
+    const { data } = await api.getUserGroups(userId);
+
+    dispatch({
+      type: USER_GROUPS_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: USER_GROUPS_FAIL,
+      payload:
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message,
     });
   }
 };

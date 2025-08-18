@@ -79,7 +79,10 @@ import {
     GROUP_PAY_MEMBER_FAIL,
     GROUP_GET_MY_JOIN_REQUESTS_REQUEST,
     GROUP_GET_MY_JOIN_REQUESTS_SUCCESS,
-    GROUP_GET_MY_JOIN_REQUESTS_FAIL
+    GROUP_GET_MY_JOIN_REQUESTS_FAIL,
+    USER_GROUPS_REQUEST,
+    USER_GROUPS_SUCCESS,
+    USER_GROUPS_FAIL
   } from '../constants/groupConstants';
   
   export const groupCreateReducer = (state = {}, action) => {
@@ -427,6 +430,19 @@ export const groupPayMemberReducer = (state = {}, action) => {
     case GROUP_PAY_MEMBER_SUCCESS:
       return { loading: false, success: true, result: action.payload };
     case GROUP_PAY_MEMBER_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const userGroupsReducer = (state = { userGroups: [] }, action) => {
+  switch (action.type) {
+    case USER_GROUPS_REQUEST:
+      return { loading: true, userGroups: [] };
+    case USER_GROUPS_SUCCESS:
+      return { loading: false, userGroups: action.payload };
+    case USER_GROUPS_FAIL:
       return { loading: false, error: action.payload };
     default:
       return state;

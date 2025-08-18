@@ -45,7 +45,8 @@ import {
   UserSquare2,
   NotebookPen,    
   UserRoundCog,
-  Handshake
+  Handshake,
+  PiggyBank
 } from 'lucide-react';
 import { 
   Card, 
@@ -251,33 +252,100 @@ const GroupDetails = () => {
   const calculateStats = () => {
     if (!group) return {};
     
-    const totalBalance = (group.savingsAccount?.balance || 0) + 
+    // Calculate total balance from all account types
+    const totalBalance = (group.groupAccount?.balance || 0) + 
+                        (group.savingsAccount?.balance || 0) + 
                         (group.loanAccount?.balance || 0) + 
-                        (group.interestEarnedAccount?.balance || 0);
+                        (group.interestEarnedAccount?.balance || 0) +
+                        (group.finesAccount?.balance || 0);
     
+    // Calculate total contributions from all members
     const totalContributions = group.members?.reduce((sum, member) => 
       sum + (member.contributions?.total || 0), 0) || 0;
     
-    const activeMembers = group.members?.filter(m => m.status === 'active').length || 0;
+    // Count active members (filter out members with null user)
+    const activeMembers = group.members?.filter(m => 
+      m.status === 'active' && m.user !== null
+    ).length || 0;
     
+    // Get recent transactions (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const recentTransactions = group.transactions?.filter(t => {
+      if (!t.date) return false;
       const transactionDate = new Date(t.date);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      return transactionDate >= thirtyDaysAgo && transactionDate <= new Date();
+    }).length || 0;
+    
+    // Calculate contribution statistics
+    const memberContributions = group.members?.map(m => m.contributions?.total || 0) || [];
+    const contributingMembers = group.members?.filter(m => 
+      (m.contributions?.total || 0) > 0
+    ).length || 0;
+    
+    // Calculate average contribution per contributing member
+    const avgContributionPerContributor = contributingMembers > 0 
+      ? totalContributions / contributingMembers 
+      : 0;
+    
+    // Calculate average contribution per active member
+    const avgContributionPerActive = activeMembers > 0 
+      ? totalContributions / activeMembers 
+      : 0;
+    
+    // Calculate recent activity metrics
+    const recentContributions = group.transactions?.filter(t => {
+      if (!t.date || t.type !== 'contribution') return false;
+      const transactionDate = new Date(t.date);
       return transactionDate >= thirtyDaysAgo;
     }).length || 0;
-
+    
+    // Calculate loan statistics
+    const loanTransactions = group.transactions?.filter(t => t.type === 'loan') || [];
+    const activeLoanAmount = group.loanAccount?.balance || 0;
+    
+    // Get member participation rate
+    const participationRate = group.members?.length > 0 
+      ? (contributingMembers / group.members.length) * 100 
+      : 0;
+    
     return {
-      totalBalance,
+      // Account balances
+      totalBalance: Math.round(totalBalance * 100) / 100, // Round to 2 decimal places
+      groupBalance: group.groupAccount?.balance || 0,
       savingsBalance: group.savingsAccount?.balance || 0,
       loanBalance: group.loanAccount?.balance || 0,
       interestEarned: group.interestEarnedAccount?.balance || 0,
       finesBalance: group.finesAccount?.balance || 0,
-      totalContributions,
-      activeMembers,
+      
+      // Member statistics
       totalMembers: group.members?.length || 0,
-      recentTransactions,
+      activeMembers,
+      contributingMembers,
+      participationRate: Math.round(participationRate * 10) / 10, // Round to 1 decimal place
+      
+      // Contribution statistics
+      totalContributions: Math.round(totalContributions * 100) / 100,
+      avgContributionPerActive: Math.round(avgContributionPerActive * 100) / 100,
+      avgContributionPerContributor: Math.round(avgContributionPerContributor * 100) / 100,
+      
+      // Transaction statistics
       totalTransactions: group.transactions?.length || 0,
-      avgContribution: activeMembers ? totalContributions / activeMembers : 0
+      recentTransactions,
+      recentContributions,
+      
+      // Additional metrics
+      activeLoanAmount,
+      totalLoanTransactions: loanTransactions.length,
+      
+      // Group settings info
+      monthlyContributionTarget: group.settings?.contributionSchedule?.amount || 0,
+      contributionFrequency: group.settings?.contributionSchedule?.frequency || 'unknown',
+      
+      // Calculated health metrics
+      avgBalancePerMember: activeMembers > 0 ? Math.round((totalBalance / activeMembers) * 100) / 100 : 0,
+      contributionCompletionRate: group.settings?.contributionSchedule?.amount > 0 
+        ? Math.round((avgContributionPerActive / group.settings.contributionSchedule.amount) * 1000) / 10 
+        : 0
     };
   };
 
@@ -351,63 +419,125 @@ const GroupDetails = () => {
 
   // Stats Cards Component
   const StatsCards = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-          <Wallet className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="text-2xl font-bold">{formatCurrency(stats.totalBalance)}
-          <p className="text-xs text-muted-foreground">Across all accounts</p></div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
 
-          <Button onClick={() => setShowFundModal(true)} className="bg-emerald-500 hover:bg-emerald-600">
-            <Plus className="h-4 w-4 mr-2" /> Add Funds
-          </Button>
-        </CardContent>
-      </Card>
+        {/* Total Balance */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <div className="text-2xl font-bold">{formatCurrency(stats.totalBalance)}</div>
+              <p className="text-xs text-muted-foreground">Across all accounts</p>
+              <Button
+                onClick={() => setShowFundModal(true)}
+                className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Funds
+              </Button>
+            </div>
+            
+          </CardContent>
+        </Card>
 
+        {/* Savings */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Savings</CardTitle>
+            <PiggyBank className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.savingsBalance)}</div>
+            <p className="text-xs text-muted-foreground">Main savings pool</p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Savings Account</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(stats.savingsBalance)}</div>
-          <p className="text-xs text-muted-foreground">
-            Main savings pool
-          </p>
-        </CardContent>
-      </Card>
+        {/* Loans */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Loan Balance</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.activeLoanAmount)}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalLoanTransactions} loan transactions
+            </p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.activeMembers}</div>
-          <p className="text-xs text-muted-foreground">
-            Out of {stats.totalMembers} total
-          </p>
-        </CardContent>
-      </Card>
+        {/* Members */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activeMembers}</div>
+            <p className="text-xs text-muted-foreground">
+              Out of {stats.totalMembers} total • {stats.participationRate}% contributing
+            </p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Contributions</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(stats.totalContributions)}</div>
-          <p className="text-xs text-muted-foreground">
-            From all members
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        {/* Contributions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Contributions</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalContributions)}</div>
+            <p className="text-xs text-muted-foreground">
+              Avg: {formatCurrency(stats.avgContributionPerActive)} per active member
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.recentTransactions}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.recentContributions} contributions in last 30 days
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Contribution Target */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Contribution Target</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.monthlyContributionTarget)}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.contributionFrequency} • {stats.contributionCompletionRate}% complete
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Avg Balance Per Member */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Balance / Member</CardTitle>
+            <PieChart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.avgBalancePerMember)}</div>
+            <p className="text-xs text-muted-foreground">Based on active members</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+
 
   // Overview Tab Component
   const OverviewTab = () => {
