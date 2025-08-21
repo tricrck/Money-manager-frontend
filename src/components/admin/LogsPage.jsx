@@ -240,8 +240,8 @@ const LogsPage = () => {
                 <Terminal className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Developer Logs Console
+                <h1 className="text-3xl font-bold ">
+                  Logs Console
                 </h1>
                 <p className="text-gray-400">Real-time system monitoring and debugging</p>
               </div>

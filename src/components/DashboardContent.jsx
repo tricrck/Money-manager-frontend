@@ -235,21 +235,21 @@ const DashboardContent = () => {
   return (
     <div className="space-y-8">
       {/* Enhanced Header with Greeting */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 p-8 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
+      <div className="relative overflow-hidden rounded-2xl p-8 border-1">
+        <div className="absolute inset-0"></div>
         <div className="relative z-10">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold mb-2">
                 Welcome back, {userInfo?.user?.name?.split(' ')[0]}! 👋
               </h1>
-              <p className="text-blue-100 text-lg">
+              <p className="text-black text-lg">
                 Here's what's happening with your finances today
               </p>
             </div>
             <div className="hidden md:block">
               <div className="text-right">
-                <p className="text-blue-100 text-sm">Today's Date</p>
+                <p className="text-black text-sm">Today's Date</p>
                 <p className="text-xl font-semibold">{new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -271,8 +271,8 @@ const DashboardContent = () => {
           // Admin Stats Cards
           <>
             <LinkContainer to="/admin/users" className="hover:cursor-pointer">
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-emerald-50 to-green-100 hover:scale-105">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-green-500/10"></div>
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-1 hover:scale-105">
+                <div className="absolute inset-0"></div>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                   <CardTitle className="text-sm font-medium text-emerald-800">Total Users</CardTitle>
                   <div className="p-2 bg-emerald-500 rounded-lg">
@@ -294,8 +294,8 @@ const DashboardContent = () => {
             </LinkContainer>
 
             <LinkContainer to="/admin/groups" className="hover:cursor-pointer">
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-blue-50 to-indigo-100 hover:scale-105">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-indigo-500/10"></div>
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-1 hover:scale-105">
+                <div className="absolute inset-0"></div>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                   <CardTitle className="text-sm font-medium text-blue-800">Total Groups</CardTitle>
                   <div className="p-2 bg-blue-500 rounded-lg">
@@ -317,8 +317,8 @@ const DashboardContent = () => {
             </LinkContainer>
 
             <LinkContainer to="/admin/loans" className="hover:cursor-pointer">
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-purple-50 to-violet-100 hover:scale-105">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-violet-500/10"></div>
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-1 hover:scale-105">
+                <div className="absolute inset-0"></div>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                   <CardTitle className="text-sm font-medium text-purple-800">Total Loans</CardTitle>
                   <div className="p-2 bg-purple-500 rounded-lg">

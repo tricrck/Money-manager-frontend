@@ -218,7 +218,7 @@ const ProfessionalDashboard = ({ children }) => {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/80 bg-opacity-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -279,7 +279,9 @@ const ProfessionalDashboard = ({ children }) => {
         {/* Main content area */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-6">
           {/* Show DashboardContent when on dashboard route, otherwise show children */}
-          {location.pathname === '/dashboard' ? <DashboardContent /> : children}
+          {(location.pathname === '/' || location.pathname === '/dashboard') 
+            ? <DashboardContent /> 
+            : children}
         </main>
       </div>
     </div>
