@@ -87,7 +87,7 @@ const LogsPage = () => {
    const source = filteredLogs?.length > 0 ? filteredLogs : logs
 
    // Sort from earliest to oldest
-   return [...source].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+   return source;
   }, [filteredLogs, logs])
 
 

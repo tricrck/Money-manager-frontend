@@ -56,29 +56,30 @@ export const logsListReducer = (state = initialState, action) => {
 
 const applyFilters = (logs, filters) => {
   return logs.filter(log => {
-    // Filter by level
-    if (filters.level !== 'all' && log.levelName !== filters.level.toUpperCase()) {
-      return false
+    // Filter by level (string or numeric support)
+    if (filters.level !== 'all') {
+      const levelMatch =
+        log.levelName?.toUpperCase() === filters.level.toUpperCase() ||
+        String(log.level) === String(filters.level)
+      if (!levelMatch) return false
     }
-    
+
     // Filter by search term
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase()
-      const messageMatch = log.message.toLowerCase().includes(searchTerm)
-      const sourceMatch = log.source.toLowerCase().includes(searchTerm)
-      if (!messageMatch && !sourceMatch) {
-        return false
-      }
+      const messageMatch = log.message?.toLowerCase().includes(searchTerm) || false
+      const sourceMatch = log.source?.toLowerCase().includes(searchTerm) || false
+      if (!messageMatch && !sourceMatch) return false
     }
-    
-    // Filter by date range (if implemented)
+
+    // Filter by date range
     if (filters.dateRange) {
-      const logDate = new Date(log.timestamp)
+      const logDate = new Date(log.date || log.timestamp) // prefer ISO "date"
       if (logDate < filters.dateRange.from || logDate > filters.dateRange.to) {
         return false
       }
     }
-    
+
     return true
   })
 }

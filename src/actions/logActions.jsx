@@ -12,9 +12,10 @@ export const listLogs = () => async (dispatch) => {
     dispatch({ type: LOGS_LIST_REQUEST })
 
     const { data } = await logActions.getLogs()
+
     dispatch({
       type: LOGS_LIST_SUCCESS,
-      payload: data.logs
+      payload: data.data
     })
   } catch (error) {
     dispatch({
