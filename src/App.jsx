@@ -50,6 +50,7 @@ import UserList from './components/users/UserList';
 import UserForm from './components/users/UserForm';
 import UserDetails from './components/users/UserDetails';
 import Home from './components/public/Home';
+import HowItWorksPage from './components/public/HowItWorksPage';
 import './index.css';
 import UserDistributionMap from './components/users/UserDistributionMap';
 import { ToastContainer } from 'react-toastify';
@@ -66,7 +67,7 @@ const PublicLayout = ({ children }) => {
   return (
     <>
       <Header />
-      <main className="py-3">
+      <main className="container mx-auto px-4">
         <Container>
           {children}
         </Container>
@@ -104,6 +105,16 @@ const App = () => {
           <UserForm />
         </PublicLayout>
       } />
+      <Route
+        path="/how-it-works"
+        element={
+          <>
+            <Header />
+            <HowItWorksPage />
+            <Footer />
+          </>
+        }
+      />
 
       {/* Dashboard Routes - use dashboard layout */}
       <Route path="/dashboard" element={<ProfessionalDashboard />} />

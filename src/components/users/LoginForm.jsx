@@ -182,7 +182,7 @@ const LoginForm = () => {
   }
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8">
       <div className="w-full max-w-lg">
         {/* Success Message */}
         {loggingIn && (

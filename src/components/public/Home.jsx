@@ -10,6 +10,7 @@ import {
   BarChart2,
   Lock
 } from 'lucide-react';
+import { LinkContainer } from 'react-router-bootstrap';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
@@ -25,12 +26,16 @@ export default function HomePage() {
           unmatched security and convenience.
         </p>
         <div className="flex gap-4 justify-center">
+          <LinkContainer to="/register">
           <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
             Get Started
           </Button>
+          </LinkContainer>
+          <LinkContainer to="/how-it-works">
           <Button size="lg" variant="outline" className="border-blue-600 text-blue-600">
             How It Works
           </Button>
+          </LinkContainer>
         </div>
       </section>
 
