@@ -42,8 +42,8 @@ const MpesaPayment = ({
 
   // Set initial phone number from user info
   useEffect(() => {
-    if (userInfo?.user?.phoneNumber) {
-      setPhoneNumber(userInfo.user.phoneNumber)
+    if (userInfo?.phoneNumber) {
+      setPhoneNumber(userInfo?.phoneNumber)
     }
   }, [userInfo])
 
@@ -85,7 +85,7 @@ const MpesaPayment = ({
       paymentPurpose: 'wallet_deposit',
       description: 'Wallet deposit via M-Pesa',
       metadata: {
-        userId: userInfo?.user?._id || userId
+        userId: userInfo?._id || userId
       }
     }
 

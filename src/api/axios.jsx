@@ -4,74 +4,48 @@ import { logout } from '../actions/userActions';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
+  withCredentials: true,
 });
 
-// Add auth token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('x-auth-token');
-    if (token) {
-      config.headers['x-auth-token'] = token;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Attach access token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
-);
+  return config;
+}, (error) => Promise.reject(error));
 
-// Simple response interceptor - handle only critical errors
+// Handle expired access token
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Authentication failed - logout and redirect
-    if (error.response?.status === 401) {
-      console.warn('Authentication failed - Session expired');
-      
-      if (store?.dispatch) {
-        store.dispatch(logout());
-      }
-      
-      localStorage.removeItem('x-auth-token');
-      window.location.href = '/home';
-      return Promise.reject(error);
-    }
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
     
-    // User not found on user-specific endpoints - likely deleted account
-    if (error.response?.status === 404) {
-      const url = error.config?.url || '';
-      const isUserEndpoint = url.includes('/users/') || 
-                            url.includes('/profile') ||
-                            (url.includes('/users') && error.config?.method?.toLowerCase() === 'get');
-      
-      if (isUserEndpoint) {
-        console.warn('User not found - Account may be invalid');
-        
-        if (store?.dispatch) {
-          store.dispatch(logout());
-        }
-        
-        localStorage.removeItem('x-auth-token');
-        window.location.href = '/home';
-        return Promise.reject(error);
+    const status = error.response?.status;
+
+    if ([401, 403, 419, 440, 500].includes(status) && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/auth/refresh`, { refreshToken });
+
+        localStorage.setItem('accessToken', res.data.accessToken);
+
+
+        // Retry original request with new token
+        originalRequest.headers['Authorization'] = `Bearer ${res.data.accessToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        console.warn('Refresh token failed, logging out');
+        console.log(err);
+        store.dispatch(logout(true));
       }
     }
-    
-    // Log other errors for debugging but don't retry
-    if (error.response) {
-      console.error(`API Error ${error.response.status}:`, {
-        url: error.config?.url,
-        method: error.config?.method,
-        data: error.response.data
-      });
-    } else if (error.request) {
-      console.error('Network Error:', error.message);
-    } else {
-      console.error('Request Error:', error.message);
-    }
-    
+
     return Promise.reject(error);
   }
 );

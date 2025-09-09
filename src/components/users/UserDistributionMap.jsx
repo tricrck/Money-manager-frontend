@@ -21,7 +21,7 @@ const UserDistributionMap = () => {
   const { userInfo } = userLogin;
 
   useEffect(() => {
-    if (userInfo?.user?.role === 'Admin') {
+    if (userInfo?.role === 'Admin') {
       dispatch(listUsers());
     } else {
       navigate('/dashboard');

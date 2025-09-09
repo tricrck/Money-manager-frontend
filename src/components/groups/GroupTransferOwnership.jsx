@@ -19,7 +19,7 @@ const GroupTransferOwnership = ({ group }) => {
   const { userInfo } = userLogin;
 
   // Check if current user is the group owner
-  const isOwner = group?.createdBy?._id === userInfo?.user?._id;
+  const isOwner = group?.createdBy?._id === userInfo?._id;
 
   useEffect(() => {
     if (successTransfer) {
@@ -58,7 +58,7 @@ const GroupTransferOwnership = ({ group }) => {
           >
             <option value="">Select a member</option>
             {group?.members
-              ?.filter((member) => member?.status === 'active' && member?.user?._id !== userInfo?.user?._id)
+              ?.filter((member) => member?.status === 'active' && member?.user?._id !== userInfo?._id)
               .map((member) => (
                 <option key={member?.user?._id} value={member?.user?._id}>
                   {member?.user?.name} ({member?.role})

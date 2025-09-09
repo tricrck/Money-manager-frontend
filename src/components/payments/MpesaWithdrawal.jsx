@@ -38,7 +38,7 @@ const MpesaWithdrawal = ({ amount, userId, onClose }) => {
 
   // Initialize phone from userInfo
   useEffect(() => {
-    if (userInfo?.user?.phoneNumber) setPhoneNumber(userInfo.user.phoneNumber)
+    if (userInfo?.phoneNumber) setPhoneNumber(userInfo?.phoneNumber)
   }, [userInfo])
 
   // Validate Kenyan phone

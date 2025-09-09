@@ -11,7 +11,13 @@ import {
   userProfilePictureUploadReducer,
   passwordResetLinkReducer,
   passwordResetReducer,
-  pushTokenReducer 
+  pushTokenReducer,
+  sendOTPReducer,
+  verifyOTPReducer,
+  resendOTPReducer,
+  checkVerificationStatusReducer,
+  userSessionsReducer, 
+  revokeSessionReducer 
 } from './reducers/userReducers';
 import {
   loanCreateReducer,
@@ -92,7 +98,14 @@ import {
   dbInfoGetReducer,
 } from './reducers/settingReducer';
 import { logsListReducer } from './reducers/logReducers';
-
+import { notificationReducer } from './reducers/notificationReducer';
+import {
+  chatSendMessageReducer,
+  chatMessagesReducer,
+  chatMarkAsReadReducer,
+  chatUnreadCountReducer,
+  chatAllSupportMessagesReducer
+} from './reducers/chatReducers';
 
 const reducer = combineReducers({
   userLogin: userLoginReducer,
@@ -105,6 +118,12 @@ const reducer = combineReducers({
   passwordResetLink: passwordResetLinkReducer,
   passwordReset: passwordResetReducer,
   pushTokenSave: pushTokenReducer,
+  sendOTP: sendOTPReducer,
+  verifyOTP: verifyOTPReducer,
+  resendOTP: resendOTPReducer,
+  checkVerificationStatus: checkVerificationStatusReducer,
+  userSessions: userSessionsReducer,
+  revokeSession: revokeSessionReducer,
   
   
 
@@ -183,6 +202,13 @@ const reducer = combineReducers({
   dbInfoGet: dbInfoGetReducer,
 
   logsList: logsListReducer,
+  notification: notificationReducer,
+
+  chatSendMessage: chatSendMessageReducer,
+  chatMessages: chatMessagesReducer,
+  chatMarkAsRead: chatMarkAsReadReducer,
+  chatUnreadCount: chatUnreadCountReducer,
+  chatAllGetMessages: chatAllSupportMessagesReducer
 });
 
 const userInfoFromStorage = localStorage.getItem('userInfo')

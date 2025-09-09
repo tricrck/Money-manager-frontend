@@ -82,7 +82,7 @@ const AllGroupList = () => {
   const [itemsPerPage] = useState(10);
 
   useEffect(() => {
-    if (userInfo?.user?.role === 'Admin') {
+    if (userInfo?.role === 'Admin') {
       dispatch(listGroups());
     } else {
       navigate('/dashboard');

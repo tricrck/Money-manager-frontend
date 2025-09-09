@@ -84,8 +84,8 @@ const Transactions = () => {
       return;
     }
 
-    if (userInfo?.user) {
-      dispatch(getUserStatement(userInfo.user._id));
+    if (userInfo) {
+      dispatch(getUserStatement(userInfo?._id));
     }
   }, [dispatch, userInfo, navigate]);
 
@@ -99,7 +99,7 @@ const Transactions = () => {
   const [dateRange, setDateRange] = useState({ from: null, to: null });
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  const isAdmin = userInfo?.user?.role === 'Admin';
+  const isAdmin = userInfo?.role === 'Admin';
 
   // Process real transactions from user statement
   const processTransactions = () => {
@@ -136,8 +136,8 @@ const Transactions = () => {
         status: transaction.status,
         paymentMethod: transaction.paymentMethod,
         reference: transaction.paymentReference,
-        userId: userInfo?.user?._id,
-        userName: userInfo?.user?.name,
+        userId: userInfo?._id,
+        userName: userInfo?.name,
         category: transaction.type,
         currency: 'KES'
       })) : [];
@@ -242,8 +242,8 @@ const Transactions = () => {
     console.log('Export')
   };
 const handleRefresh = () => {
-    if (userInfo?.user) {
-      dispatch(getUserStatement(userInfo.user._id));
+    if (userInfo) {
+      dispatch(getUserStatement(userInfo?._id));
     }
   };
   const StatsCards = () => (

@@ -86,7 +86,7 @@ const UserForm = () => {
   const { userInfo } = userLogin;
 
   // Check if current user is admin
-  const isAdmin = userInfo?.user?.role === 'Admin';
+  const isAdmin = userInfo?.role === 'Admin';
 
   // Counties list
   const counties = [
@@ -127,12 +127,18 @@ const UserForm = () => {
       }
     }
   }, [dispatch, userId, user, isEditing]);
+  
 
   // Show success message
   useEffect(() => {
     if (successUpdate) {
-      setMessage('User updated successfully');
-      setTimeout(() => setMessage(null), 3000);
+      // Redirect to /profile after short delay
+      const timer = setTimeout(() => {
+        setMessage(null);
+        navigate('/profile');
+      }, 1500);
+
+      return () => clearTimeout(timer);
     }
   }, [successUpdate]);
 

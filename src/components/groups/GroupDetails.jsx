@@ -144,15 +144,16 @@ const GroupDetails = () => {
     );
 
   // console.log("Test approval", joinRequestloading, joinRequesterror, joinRequest, joinRequestsuccess)
+  console.log("Group details", group)
 
   // Check if current user is admin
-  const isAdmin = group?.admins?.some(admin => admin._id === userInfo?.user?._id);
-  const isOwner = group?.createdBy?._id === userInfo?.user?._id; 
-  const currentMember = group?.members?.find(member => member.user._id === userInfo?.user?._id);
+  const isAdmin = group?.admins?.some(admin => admin._id === userInfo?._id);
+  const isOwner = group?.createdBy?._id === userInfo?._id; 
+  const currentMember = group?.members?.find(member => member.user?._id === userInfo?._id);
   const Role = currentMember?.role;
 
   const myloans = loans?.filter(
-        (loan) => loan?.loanType === 'personal' && loan?.user?._id === userInfo?.user?._id && (loan?.status === 'disbursed' || loan?.status === 'active')
+        (loan) => loan?.loanType === 'personal' && loan?.user?._id === userInfo?._id && (loan?.status === 'disbursed' || loan?.status === 'active')
     );
 
 
@@ -549,79 +550,11 @@ const GroupDetails = () => {
         <StatsCards />
         
         {/* Charts Section */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Group Settings and Type-Specific Information */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* General Group Settings */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Account Balances
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {accountData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={accountData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {accountData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No balance data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Contribution Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trendData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="amount" 
-                      stroke="#3b82f6" 
-                      fill="#3b82f6" 
-                      fillOpacity={0.2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No contribution data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Group Settings Overview */}
-        <Card>
-          <div></div>
-          <CardHeader>
               <div className="flex items-center justify-between w-full">
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
@@ -643,45 +576,237 @@ const GroupDetails = () => {
               </div>
             </CardHeader>
 
-            
-
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Calendar className="h-4 w-4" />
-                  Contribution Schedule
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Calendar className="h-4 w-4" />
+                    Contribution Schedule
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p>{group?.settings?.contributionSchedule?.frequency || 'Not set'}</p>
+                    <p>{formatCurrency(group?.settings?.contributionSchedule?.amount)} due on day {group?.settings?.contributionSchedule?.dueDay}</p>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>{group?.settings?.contributionSchedule?.frequency || 'Not set'}</p>
-                  <p>{formatCurrency(group?.settings?.contributionSchedule?.amount)} due on day {group?.settings?.contributionSchedule?.dueDay}</p>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <CreditCard className="h-4 w-4" />
+                    Loan Settings
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p>Max multiplier: {group?.settings?.loanSettings?.maxLoanMultiplier}x</p>
+                    <p>Interest rate: {group?.settings?.loanSettings?.interestRate}%</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarDays className="h-4 w-4" />
+                    Meeting Schedule
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p>{group?.settings?.meetingSchedule?.frequency || 'Not set'}</p>
+                    <p>Day {group?.settings?.meetingSchedule?.dayOfMonth} at {group?.settings?.meetingSchedule?.time}</p>
+                  </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <CreditCard className="h-4 w-4" />
-                  Loan Settings
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>Max multiplier: {group?.settings?.loanSettings?.maxLoanMultiplier}x</p>
-                  <p>Interest rate: {group?.settings?.loanSettings?.interestRate}%</p>
-                </div>
-              </div>
+          {/* Type-Specific Information */}
+          {group?.groupType === 'chama' && group?.chamaData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Chama Cycle Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Current Cycle Info */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Activity className="h-4 w-4" />
+                        Current Cycle
+                      </div>
+                      <div className="text-2xl font-bold text-primary">
+                        Cycle {group.chamaData.currentCycle}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Target className="h-4 w-4" />
+                        Next Recipient
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {(() => {
+                          const nextRecipient = group?.chamaData?.payoutOrder?.find(p => !p.hasPaidOut);
+                          const member = group?.members?.find(m => m.user?._id === nextRecipient?.memberId);
+                          return member ? member.user.name : 'All cycles completed';
+                        })()}
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <CalendarDays className="h-4 w-4" />
-                  Meeting Schedule
+                  {/* Cycle Settings */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Settings className="h-4 w-4" />
+                      Cycle Settings
+                    </div>
+                    <div className="grid gap-2 text-sm text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>Shuffle Order:</span>
+                        <span>{group.chamaData.cycleSettings?.shuffleOrder ? 'Yes' : 'No'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Emergency Payouts:</span>
+                        <span>{group.chamaData.cycleSettings?.allowEmergencyPayouts ? 'Allowed' : 'Not Allowed'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Penalty Amount:</span>
+                        <span>{(group.chamaData.cycleSettings?.penaltyAmount * 100) || 0}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payout Progress */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <PieChart className="h-4 w-4" />
+                      Payout Progress
+                    </div>
+                    <div className="space-y-2">
+                      {group?.chamaData?.payoutOrder?.map((payout, index) => {
+                        const member = group?.members?.find(m => m.user?._id === payout.memberId);
+                        return (
+                          <div key={payout.memberId} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${payout.hasPaidOut ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-sm">{member?.user?.name}</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {payout.hasPaidOut ? formatCurrency(payout.amount || 0) : 'Pending'}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>{group?.settings?.meetingSchedule?.frequency || 'Not set'}</p>
-                  <p>Day {group?.settings?.meetingSchedule?.dayOfMonth} at {group?.settings?.meetingSchedule?.time}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {group?.groupType === 'sacco' && group?.saccoData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  SACCO Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <PieChart className="h-4 w-4" />
+                        Share Capital
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Total Shares: {group.saccoData.shareCapitalAccount?.totalShares || 0}</p>
+                        <p>Share Value: {formatCurrency(group.saccoData.shareCapitalAccount?.shareValue || 0)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Percent className="h-4 w-4" />
+                        Dividends
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Last Rate: {group.saccoData.dividendAccount?.lastDividendRate || 0}%</p>
+                        <p>Balance: {formatCurrency(group.saccoData.dividendAccount?.balance || 0)}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {group?.groupType === 'table_banking' && group?.tableBankingData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <HandCoins className="h-5 w-5" />
+                  Table Banking Rules
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-1">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Shield className="h-4 w-4" />
+                        Social Rules
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>Attendance Requirement: {(group.tableBankingData.socialRules?.attendanceRequirement * 100) || 80}%</p>
+                        <p>Absence Penalty: {formatCurrency(group.tableBankingData.socialRules?.penaltyForAbsence || 0)}</p>
+                        <p>Max Absences: {group.tableBankingData.socialRules?.maxConsecutiveAbsences || 2}</p>
+                        <p>Late Payment Penalty: {(group.tableBankingData.socialRules?.latePaymentPenalty * 100) || 5}%</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {group?.groupType === 'investment_club' && group?.investmentClubData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Investment Strategy
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Target className="h-4 w-4" />
+                        Risk & Returns
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Risk Tolerance: {group.investmentClubData.investmentStrategy?.riskTolerance || 'Moderate'}</p>
+                        <p>Annual Target: {group.investmentClubData.investmentStrategy?.targetReturns?.annualTarget || 12}%</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <PieChart className="h-4 w-4" />
+                        Diversification
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Max Single Investment: {(group.investmentClubData.investmentStrategy?.diversificationRules?.maxSingleInvestment * 100) || 25}%</p>
+                        <p>Min Investment Types: {group.investmentClubData.investmentStrategy?.diversificationRules?.minInvestmentTypes || 3}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   };
@@ -807,7 +932,7 @@ const GroupDetails = () => {
                     </div>
                     
                     {/* Add action buttons for admins */}
-                    {(isAdmin || isOwner) && member.user?._id !== userInfo?.user?._id && (
+                    {(isAdmin || isOwner) && member.user?._id !== userInfo?._id && (
                       <div className="flex items-center gap-1">
                         <Button
                           size="sm"
@@ -828,7 +953,7 @@ const GroupDetails = () => {
                     )}
                     
                     {/* Leave button for current user */}
-                    {member.user?._id === userInfo?.user?._id && !isOwner && (
+                    {member.user?._id === userInfo?._id && !isOwner && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1277,7 +1402,7 @@ const GroupDetails = () => {
         onMemberAdded={() => {
           setShowMembersModal(false);
         }}
-        currentUser={userInfo?.user}
+        currentUser={userInfo}
         isAdmin={isAdmin}
         isOwner={isOwner}
        />
@@ -1298,7 +1423,7 @@ const GroupDetails = () => {
               isOpen={showFundModal}
               onClose={() => setShowFundModal(false)}
               groupId={group._id}
-              currentUser={userInfo?.user}
+              currentUser={userInfo}
               isAdmin={isAdmin}
               myloans={myloans}
               isTreasurer={currentMember?.role === 'treasurer'}

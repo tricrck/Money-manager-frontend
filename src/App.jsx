@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProfessionalDashboard from './components/Dashboard';
-
+// Import chat components
+import FloatingChatButton from './components/chat/FloatingChatButton';
+import ChatPage from './components/chat/ChatPage';
 // Import all your existing components
 import LoanList from './components/loans/LoanList';
 import LoanForm from './components/loans/LoanForm';
@@ -56,6 +58,10 @@ import UserDistributionMap from './components/users/UserDistributionMap';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import LogsPage from './components/admin/LogsPage';
+import AuthRedirectHandler from './components/users/AuthRedirectHandler';
+import AuthErrorPage from './components/users/AuthErrorPage';
+import SupportManagementPage from './components/admin/SupportManagementPage';
+import SessionManager from './components/admin/SessionManager';
 
 // Layout wrapper component for dashboard pages
 const DashboardLayout = ({ children }) => {
@@ -78,6 +84,10 @@ const PublicLayout = ({ children }) => {
 };
 
 const App = () => {
+  const location = useLocation();
+  
+  // Don't show floating chat on login/register pages
+  const hideFloatingChat = ['/login', '/register', '/home', '/how-it-works', '/admin/support', '/chat'].includes(location.pathname);
   return (
     <>
     <Routes>
@@ -115,6 +125,16 @@ const App = () => {
           </>
         }
       />
+
+      <Route path="/auth/success" element={<AuthRedirectHandler />} />
+      <Route path="/auth/error" element={<AuthErrorPage />} />
+
+      {/* Chat Routes */}
+      <Route path="/chat" element={
+          <DashboardLayout>
+            <ChatPage />
+          </DashboardLayout>
+        } />
 
       {/* Dashboard Routes - use dashboard layout */}
       <Route path="/dashboard" element={<ProfessionalDashboard />} />
@@ -358,9 +378,19 @@ const App = () => {
           <AdminSettings />
         </DashboardLayout>
       } />
+      <Route path="/admin/support" element={
+        <DashboardLayout>
+          <SupportManagementPage />
+        </DashboardLayout>
+      } />
       <Route path="/admin/logs" element={
         <DashboardLayout>
           <LogsPage />
+        </DashboardLayout>
+      } />
+      <Route path="/admin/sessions" element={
+        <DashboardLayout>
+          <SessionManager />
         </DashboardLayout>
       } />
       <Route path="/admin/users" element={
@@ -394,6 +424,8 @@ const App = () => {
       {/* Catch all route - redirect to dashboard */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    {/* Floating Chat Button - Only show on dashboard pages */}
+    {!hideFloatingChat && <FloatingChatButton />}
     <ToastContainer position="top-right" autoClose={5000} />
     </>
   );

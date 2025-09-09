@@ -95,7 +95,7 @@ const DepositForm = ({ userId, defaultAmount = '', defaultMethod = '' }) => {
       setAmount('')
       setPaymentMethod('')
       // Optionally refresh wallet data or navigate
-      dispatch(getWalletDetails(userInfo?.user?._id || userId));
+      dispatch(getWalletDetails(userInfo?._id || userId));
       // Navigate to wallet page or show success message
     }
   }

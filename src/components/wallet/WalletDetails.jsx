@@ -37,7 +37,9 @@ const WalletDetails = () => {
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
 
-  const userId = userInfo?.user?._id;
+  const userId = userInfo?._id && userInfo._id !== "unidentified" 
+      ? userInfo?._id
+      : userInfo?.user?._id;
 
   // Quick action transaction amounts
   const quickAmounts = [100, 500, 1000, 5000]

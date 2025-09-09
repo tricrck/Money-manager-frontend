@@ -17,7 +17,7 @@ const StripePaymentForm = ({ amount, currency, description, onSuccess, onError }
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
 
-  const userId = userInfo?.user?._id;
+  const userId = userInfo?._id;
   
   const [cardComplete, setCardComplete] = useState(false);
   const [error, setError] = useState(null);

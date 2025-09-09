@@ -387,7 +387,7 @@ const PartiesStep = memo(({
             ) : (
               <Input
                 type="text"
-                value={userInfo.user.name}
+                value={userInfo?.name}
                 disabled
                 className="bg-gray-100"
               />
@@ -673,7 +673,7 @@ const LoanForm = () => {
   const isEditMode = Boolean(id);
   const loading = loadingCreate || loadingUpdate || loadingDetails || loanDocumentUploadloading;
   const error = errorCreate || errorUpdate || errorDetails || errorloanDocumentUpload;
-  const isAdmin = userInfo?.user?.role === "Admin";
+  const isAdmin = userInfo?.role === "Admin";
 
   const loanId = createdLoan?._id || loan?._id || id;
 
@@ -694,7 +694,7 @@ const LoanForm = () => {
       value: 0,
       documents: [],
     },
-    user: userInfo?.user?._id || '',
+    user: userInfo?._id || '',
     group: groups[0]?._id,
     guarantors: [],
     noteText: '',
@@ -713,8 +713,8 @@ const LoanForm = () => {
     if (loanId && isEditMode) {
       dispatch(getLoanDetails(loanId));
     }
-    if (!isAdmin && userInfo?.user?._id) {
-      handleChange({ target: { name: "user", value: userInfo.user._id } });
+    if (!isAdmin && userInfo?._id) {
+      handleChange({ target: { name: "user", value: userInfo?._id } });
       dispatch(listMyGroups());
     } else {
       dispatch(listUsers());

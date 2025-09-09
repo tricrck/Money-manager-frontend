@@ -49,9 +49,9 @@ const LoanList = () => {
   const { userInfo } = userLogin;
 
   useEffect(() => {
-    if (userInfo && userInfo.user.role === 'Admin') {
+    if (userInfo && userInfo?.role === 'Admin') {
       dispatch(listLoans());
-    } else if (userInfo && userInfo.user.role !== 'Admin') {
+    } else if (userInfo && userInfo?.role !== 'Admin') {
       navigate('/unauthorized');
     } else {
       navigate('/login');

@@ -42,16 +42,20 @@ const MyLoansList = ({ history }) => {
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
 
-  const isAdmin = userInfo?.user?.role === "Admin";
+  const effectiveUser = userInfo?._id && userInfo._id !== "unidentified" 
+      ? userInfo 
+      : userInfo?.user;
+
+  const isAdmin = effectiveUser?.role === "Admin";
 
   useEffect(() => {
-    if (userInfo) {
-      dispatch(getUserLoans(userInfo?.user?._id));
+    if (effectiveUser) {
+      dispatch(getUserLoans(effectiveUser?._id));
       dispatch(listMyGroups());
     } else {
       navigate('/login');
     }
-  }, [dispatch, navigate, userInfo]);
+  }, [dispatch, navigate, effectiveUser]);
 
 
   // Filter and sort loans

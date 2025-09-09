@@ -36,7 +36,7 @@ const GroupLoans = ({ loans, userInfo, Role }) => {
 
     if (Role !== 'treasurer' && Role !== 'admin' && Role !== 'chair') {
     groupLoans = loans.filter(
-        (loan) => loan.loanType === 'personal' && loan.user._id === userInfo?.user?._id
+        (loan) => loan.loanType === 'personal' && loan.user._id === userInfo?._id
     );
     } else {
     groupLoans = loans;

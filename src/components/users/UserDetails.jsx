@@ -59,7 +59,7 @@ const UserDetails = () => {
   const userId = id;
   
   useEffect(() => {
-    if (userInfo?.user?._id === userId) {
+    if (userInfo?._id === userId) {
       // Logged-in user's own profile
       dispatch(getUserDetails(userId));
       dispatch(listMyGroups());

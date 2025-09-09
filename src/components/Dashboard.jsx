@@ -72,14 +72,14 @@ const ProfessionalDashboard = ({ children }) => {
     navigate('/home');
   };
 
-  const isAdmin = userInfo?.user?.role === 'Admin';
-  const isGroupAdmin = ['Admin', 'Treasurer', 'Secretary'].includes(userInfo?.user?.role);
+  const isAdmin = userInfo?.role === 'Admin';
+  const isGroupAdmin = ['Admin', 'Treasurer', 'Secretary'].includes(userInfo?.role);
 
   // Navigation items based on role
   const getNavigationItems = () => {
     const personalFinanceItems = [
       { icon: Home, label: 'Dashboard', path: '/dashboard', key: 'dashboard' },
-      { icon: Wallet, label: 'My Wallet', path: `/wallet/${userInfo?.user?._id}`, key: 'wallet' },
+      { icon: Wallet, label: 'My Wallet', path: `/wallet/${userInfo?._id}`, key: 'wallet' },
       { icon: FileText, label: 'Transactions', path: '/transactions', key: 'transactions' }
     ];
 
@@ -94,7 +94,9 @@ const ProfessionalDashboard = ({ children }) => {
       { icon: Building2, label: 'Group Management', path: '/admin/groups', key: 'admin-groups' },
       { icon: CreditCard, label: 'Loans Management', path: '/admin/loans', key: 'admin-loans' },
       { icon: Shield, label: 'System Settings', path: '/admin/settings', key: 'settings' },
-      { icon: FileText, label: 'System Logs', path: '/admin/logs', key: 'logs' }
+      { icon: UserCheck, label: 'Session Management', path: '/admin/sessions', key: 'sessions' },
+      { icon: FileText, label: 'System Logs', path: '/admin/logs', key: 'logs' },
+      { icon: AlertCircle, label: 'Support Management', path: '/admin/support', key: 'support' }
     ];
 
     const groupAdminItems = [
@@ -180,12 +182,12 @@ const ProfessionalDashboard = ({ children }) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start">
               <Avatar className="h-8 w-8 mr-3">
-                <AvatarImage src={userInfo?.user?.profilePicture} />
-                <AvatarFallback>{userInfo?.user?.name?.charAt(0)}</AvatarFallback>
+                <AvatarImage src={userInfo?.profilePicture} />
+                <AvatarFallback>{userInfo?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">{userInfo?.user?.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{userInfo?.user?.role}</span>
+                <span className="text-sm font-medium">{userInfo?.name}</span>
+                <span className="text-xs text-muted-foreground capitalize">{userInfo?.role}</span>
               </div>
               <ChevronDown className="ml-auto h-4 w-4" />
             </Button>
@@ -251,15 +253,15 @@ const ProfessionalDashboard = ({ children }) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={userInfo?.user?.profilePicture} />
-                  <AvatarFallback>{userInfo?.user?.name?.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={userInfo?.profilePicture} />
+                  <AvatarFallback>{userInfo?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{userInfo?.user?.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{userInfo?.user?.role}</p>
+                <p className="text-sm font-medium">{userInfo?.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{userInfo?.role}</p>
               </div>
               <DropdownMenuSeparator />
               <LinkContainer to="/profile">

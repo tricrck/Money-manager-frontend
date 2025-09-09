@@ -143,7 +143,7 @@ const AdminAnalytics = () => {
      return;
     }
   
-  if (userInfo?.user?.role === 'Admin') {
+  if (userInfo?.role === 'Admin') {
     dispatch(getAdminTransactionReport());
     dispatch(getAdminAnalytics());
     dispatch(getRealtimeMetrics()); 

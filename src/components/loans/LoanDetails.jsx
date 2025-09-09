@@ -154,8 +154,8 @@ const LoanDetails = () => {
 
   // Check user permissions
   const canReview = () => {
-    const userRole = userInfo?.user?.role;
-    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?.user?._id)?.role || "none";
+    const userRole = userInfo?.role;
+    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?._id)?.role || "none";
     
     // Admin can review all loans
     if (userRole === 'Admin') return true;
@@ -167,8 +167,8 @@ const LoanDetails = () => {
   };
 
   const canDisburse = () => {
-    const userRole = userInfo?.user?.role;
-    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?.user?._id)?.role || "none";
+    const userRole = userInfo?.role;
+    const groupRole = group?.members?.find(m => m.user && m.user._id === userInfo?._id)?.role || "none";
 
     
     // Admin can disburse all loans

@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['redux-thunk']
+    include: ['redux-thunk', 'firebase-messaging-sw.js']
   },
   server: {
     host: true, // Enables access from network

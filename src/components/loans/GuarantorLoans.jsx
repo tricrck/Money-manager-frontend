@@ -42,14 +42,15 @@ const GuarantorLoans = () => {
 
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
+  console.log('User Info:', userInfo);
 
   useEffect(() => {
     if (userInfo) {
-      dispatch(getGuarantorLoans(userInfo?.user?._id));
+      dispatch(getGuarantorLoans(userInfo?._id));
     }
   }, [dispatch, userInfo]);
 
-  const guarantorId = userInfo?.user?._id;
+  const guarantorId = userInfo?._id;
 
   useEffect(() => {
   if (!loadingApproval && processingLoanId) {
@@ -150,7 +151,7 @@ const GuarantorLoans = () => {
               </TableHeader>
               <TableBody>
                 {loans?.result?.map((loan) => {
-                  const guarantor = loan?.guarantors.find(g => g.user?._id === userInfo.user?._id);
+                  const guarantor = loan?.guarantors.find(g => g.user?._id === userInfo?._id);
                   const isPending = guarantor?.approvalDate === undefined || guarantor?.approvalDate === null;
                   const isApproved = guarantor?.approved === true && guarantor?.approvalDate !== undefined;
                   const isRejected = guarantor?.approved === false && guarantor?.approvalDate !== undefined;

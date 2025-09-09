@@ -58,7 +58,9 @@ const TransactionHistory = () => {
   const userLogin = useSelector((state) => state.userLogin)
   const { userInfo } = userLogin
 
-  const userId = params?.userId || userInfo?.user?._id
+  const userId = params?.userId || userInfo?._id && userInfo._id !== "unidentified" 
+      ? userInfo?._id
+      : userInfo?.user?._id
 
   useEffect(() => {
     if (userInfo) {

@@ -208,7 +208,7 @@ const Statements = () => {
     doc.text('Financial Statement', 20, 20);
     
     doc.setFontSize(12);
-    doc.text(`User: ${userInfo?.user?.name || 'N/A'}`, 20, 35);
+    doc.text(`User: ${userInfo?.name || 'N/A'}`, 20, 35);
     doc.text(`Period: ${new Date(period.startDate).toLocaleDateString()} - ${new Date(period.endDate).toLocaleDateString()}`, 20, 45);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 55);
 

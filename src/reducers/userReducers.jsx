@@ -26,7 +26,28 @@ import {
     USER_PASSWORD_RESET_LINK_FAIL,
     USER_PASSWORD_RESET_REQUEST,
     USER_PASSWORD_RESET_SUCCESS,
-    USER_PASSWORD_RESET_FAIL
+    USER_PASSWORD_RESET_FAIL,
+    SEND_OTP_REQUEST,
+    SEND_OTP_SUCCESS,
+    SEND_OTP_FAIL,
+    VERIFY_OTP_REQUEST,
+    VERIFY_OTP_SUCCESS,
+    VERIFY_OTP_FAIL,
+    RESEND_OTP_REQUEST,
+    RESEND_OTP_SUCCESS,
+    RESEND_OTP_FAIL,
+    CHECK_VERIFICATION_STATUS_REQUEST,
+    CHECK_VERIFICATION_STATUS_SUCCESS,
+    CHECK_VERIFICATION_STATUS_FAIL,
+    SOCIAL_AUTH_REQUEST,
+    SOCIAL_AUTH_SUCCESS,
+    SOCIAL_AUTH_FAIL,
+    USER_SESSIONS_REQUEST,
+    USER_SESSIONS_SUCCESS,
+    USER_SESSIONS_FAIL,
+   USER_SESSION_REVOKE_REQUEST,
+   USER_SESSION_REVOKE_SUCCESS,
+   USER_SESSION_REVOKE_FAIL,
   } from '../constants/userConstants';
 
   import {
@@ -67,9 +88,31 @@ import {
       case USER_LOGIN_REQUEST:
         return { loading: true };
       case USER_LOGIN_SUCCESS:
-        return { loading: false, userInfo: action.payload };
+        return { loading: false, userInfo: action.payload.user };
       case USER_LOGIN_FAIL:
         return { loading: false, error: action.payload };
+      case SOCIAL_AUTH_REQUEST:
+        return {
+          ...state,
+          loading: true,
+          error: null,
+          socialAuthProvider: action.payload?.provider
+        };
+      case SOCIAL_AUTH_SUCCESS:
+        return {
+          ...state,
+          loading: false,
+          userInfo: action.payload,
+          error: null,
+          socialAuthProvider: null
+        };
+      case SOCIAL_AUTH_FAIL:
+        return {
+          ...state,
+          loading: false,
+          error: action.payload,
+          socialAuthProvider: null
+        };
       case USER_LOGOUT:
         return {};
       default:
@@ -164,6 +207,88 @@ export const pushTokenReducer = (state = {}, action) => {
     case SAVE_PUSH_TOKEN_SUCCESS:
       return { loading: false, success: true };
     case SAVE_PUSH_TOKEN_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Send OTP Reducer
+export const sendOTPReducer = (state = {}, action) => {
+  switch (action.type) {
+    case SEND_OTP_REQUEST:
+      return { loading: true };
+    case SEND_OTP_SUCCESS:
+      return { loading: false, success: true, message: action.payload };
+    case SEND_OTP_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Verify OTP Reducer
+export const verifyOTPReducer = (state = {}, action) => {
+  switch (action.type) {
+    case VERIFY_OTP_REQUEST:
+      return { loading: true };
+    case VERIFY_OTP_SUCCESS:
+      return { loading: false, success: true, verified: action.payload };
+    case VERIFY_OTP_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Resend OTP Reducer
+export const resendOTPReducer = (state = {}, action) => {
+  switch (action.type) {
+    case RESEND_OTP_REQUEST:
+      return { loading: true };
+    case RESEND_OTP_SUCCESS:
+      return { loading: false, success: true, message: action.payload };
+    case RESEND_OTP_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Check Verification Status Reducer
+export const checkVerificationStatusReducer = (state = {}, action) => {
+  switch (action.type) {
+    case CHECK_VERIFICATION_STATUS_REQUEST:
+      return { loading: true };
+    case CHECK_VERIFICATION_STATUS_SUCCESS:
+      return { loading: false, verified: action.payload };
+    case CHECK_VERIFICATION_STATUS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const userSessionsReducer = (state = { sessions: [] }, action) => {
+  switch (action.type) {
+    case USER_SESSIONS_REQUEST:
+      return { loading: true, sessions: [] };
+    case USER_SESSIONS_SUCCESS:
+      return { loading: false, sessions: action.payload };
+    case USER_SESSIONS_FAIL:
+      return { loading: false, error: action.payload, sessions: [] };
+    default:
+      return state;
+  }
+};
+
+export const revokeSessionReducer = (state = {}, action) => {
+  switch (action.type) {
+    case USER_SESSION_REVOKE_REQUEST:
+      return { loading: true };
+    case USER_SESSION_REVOKE_SUCCESS:
+      return { loading: false, success: true, message: action.payload };
+    case USER_SESSION_REVOKE_FAIL:
       return { loading: false, error: action.payload };
     default:
       return state;

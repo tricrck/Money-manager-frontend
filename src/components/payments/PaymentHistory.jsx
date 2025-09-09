@@ -29,7 +29,7 @@ const PaymentHistory = () => {
   const paymentHistory = useSelector((state) => state.paymentHistory);
   const { loading: paymentLoading, error: paymentError, payments: paymentData } = paymentHistory || {};
 
-  const userId = params.userId || userInfo?.user?._id;
+  const userId = params.userId || userInfo?._id;
 
   useEffect(() => {
     if (!userInfo) {

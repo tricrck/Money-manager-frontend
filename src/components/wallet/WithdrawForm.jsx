@@ -61,7 +61,7 @@ const WithdrawForm = ({ userId }) => {
     setShowModal(false)
     dispatch(resetPaymentState())
     // refresh wallet
-    dispatch(getWalletDetails(userInfo?.user?._id || userId))
+    dispatch(getWalletDetails(userInfo?._id || userId))
     setAmount('')
     setPaymentMethod('')
   }

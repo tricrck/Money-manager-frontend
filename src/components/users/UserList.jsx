@@ -101,7 +101,7 @@ const UserList = () => {
   const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
-    if (userInfo?.user?.role === 'Admin') {
+    if (userInfo?.role === 'Admin') {
       dispatch(listUsers());
     } else {
       navigate('/dashboard');
@@ -627,7 +627,7 @@ const UserList = () => {
                             <DropdownMenuItem 
                               onClick={() => handleDelete(user._id, user.name)}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              disabled={user._id === userInfo?.user?._id}
+                              disabled={user._id === userInfo?._id}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete User

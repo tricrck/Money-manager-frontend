@@ -402,7 +402,7 @@ const GroupList = () => {
   const GridView = () => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {processedGroups.map((group) => {
-        const myMembership = group.members?.find(member => member.user === userInfo?.user?._id);
+        const myMembership = group.members?.find(member => member.user === userInfo?._id);
         const myContributions = myMembership?.contributions?.total || 0;
         const pendingJoinRequests = group.joinRequests?.filter(r => r.status === 'pending').length || 0;
         const groupStatus = getGroupStatus(group);
