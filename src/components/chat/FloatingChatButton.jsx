@@ -348,7 +348,7 @@ const FloatingChatButton = () => {
       {/* Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-10 z-30 md:hidden"
+          className="fixed inset-0 bg-black/80 bg-opacity-10 z-30 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

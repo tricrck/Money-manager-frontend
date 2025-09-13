@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ import AuthRedirectHandler from './components/users/AuthRedirectHandler';
 import AuthErrorPage from './components/users/AuthErrorPage';
 import SupportManagementPage from './components/admin/SupportManagementPage';
 import SessionManager from './components/admin/SessionManager';
+import MyInvitations from './components/groups/MyInvitations';
 
 // Layout wrapper component for dashboard pages
 const DashboardLayout = ({ children }) => {
@@ -85,9 +87,23 @@ const PublicLayout = ({ children }) => {
 
 const App = () => {
   const location = useLocation();
-  
-  // Don't show floating chat on login/register pages
-  const hideFloatingChat = ['/login', '/register', '/home', '/how-it-works', '/admin/support', '/chat'].includes(location.pathname);
+  const { userInfo } = useSelector((state) => state.userLogin); 
+  // assuming userLogin.userInfo.role contains "admin", "support", "member", etc.
+
+  // Paths where floating chat should not show
+  const hiddenPaths = [
+    '/login',
+    '/register',
+    '/home',
+    '/how-it-works',
+    '/admin/support',
+    '/chat'
+  ];
+
+  const isHiddenByPath = hiddenPaths.includes(location.pathname);
+  const isHiddenByRole = userInfo && ['Admin', 'Support'].includes(userInfo.role);
+
+  const hideFloatingChat = isHiddenByPath || isHiddenByRole;
   return (
     <>
     <Routes>
@@ -238,6 +254,11 @@ const App = () => {
       <Route path="/groups/join" element={
         <DashboardLayout>
           <JoinGroups />
+        </DashboardLayout>
+      } />
+      <Route path="/groups/invitations" element={
+        <DashboardLayout>
+          <MyInvitations />
         </DashboardLayout>
       } />
       <Route path="/groups/:id" element={

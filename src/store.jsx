@@ -70,6 +70,10 @@ import {
   groupPayMemberReducer,
   groupGetMyJoinRequestsReducer,
   userGroupsReducer,
+  acceptExternalInvitationReducer,
+  invitationDetailsReducer,
+  resendInvitationReducer,
+  cancelInvitationReducer,
 } from './reducers/groupReducers';
 import {
   walletDetailsReducer,
@@ -106,6 +110,12 @@ import {
   chatUnreadCountReducer,
   chatAllSupportMessagesReducer
 } from './reducers/chatReducers';
+import {
+  eventsReducer,
+  eventCompleteReducer,
+  finesReducer,
+  fineWaiveReducer,
+} from './reducers/eventReducers';
 
 const reducer = combineReducers({
   userLogin: userLoginReducer,
@@ -175,6 +185,10 @@ const reducer = combineReducers({
   groupFundWallet: groupFundWalletReducer,
   groupPayMember: groupPayMemberReducer,
   userGroups: userGroupsReducer,
+  acceptExternalInvitation: acceptExternalInvitationReducer,
+  invitationDetails: invitationDetailsReducer,
+  resendInvitation: resendInvitationReducer,
+  cancelInvitation: cancelInvitationReducer,
 
 
   walletDetails: walletDetailsReducer,
@@ -208,7 +222,12 @@ const reducer = combineReducers({
   chatMessages: chatMessagesReducer,
   chatMarkAsRead: chatMarkAsReadReducer,
   chatUnreadCount: chatUnreadCountReducer,
-  chatAllGetMessages: chatAllSupportMessagesReducer
+  chatAllGetMessages: chatAllSupportMessagesReducer,
+
+  events: eventsReducer,
+  eventComplete: eventCompleteReducer,
+  fines: finesReducer,
+  fineWaive: fineWaiveReducer,
 });
 
 const userInfoFromStorage = localStorage.getItem('userInfo')

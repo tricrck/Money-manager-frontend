@@ -26,7 +26,6 @@ import {
   getAllSupportMessagesAction
 } from '../../actions/chatActions';
 
-
 const SupportManagementPage = () => {
   const dispatch = useDispatch();
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -234,20 +233,20 @@ const SupportManagementPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'open': return 'bg-red-100 text-red-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'open': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
     }
   };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return 'text-red-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-green-600';
-      default: return 'text-gray-600';
+      case 'high': return 'text-red-600 dark:text-red-400';
+      case 'medium': return 'text-yellow-600 dark:text-yellow-400';
+      case 'low': return 'text-green-600 dark:text-green-400';
+      default: return 'text-gray-600 dark:text-gray-400';
     }
   };
 
@@ -259,25 +258,24 @@ const SupportManagementPage = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-[94dvh] bg-background">
       {/* Sidebar - Ticket List */}
-      <div className={`w-full md:w-1/3 bg-white border-r border-gray-200 flex flex-col 
+      <div className={`w-full md:w-1/3 bg-card border-r border-border flex flex-col 
           ${showChat ? 'hidden md:flex' : 'flex'}`}>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900 mb-4">Support Management</h1>
+        {/* Header - Fixed */}
+        <div className="p-4 border-b border-border flex-shrink-0">
+          <h1 className="text-xl font-semibold text-foreground mb-4">Support Management</h1>
           
           {/* Search */}
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <input
               type="text"
               placeholder="Search tickets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-input bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -286,7 +284,7 @@ const SupportManagementPage = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-input bg-background text-foreground rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All Status</option>
               <option value="open">Open</option>
@@ -298,7 +296,7 @@ const SupportManagementPage = () => {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-input bg-background text-foreground rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All Priority</option>
               <option value="high">High</option>
@@ -308,14 +306,14 @@ const SupportManagementPage = () => {
           </div>
         </div>
 
-        {/* Ticket List */}
+        {/* Ticket List - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           {loadingAllMessages ? (
             <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : filteredTickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
               <MessageSquare className="w-8 h-8 mb-2" />
               <p className="text-sm">No support tickets found</p>
             </div>
@@ -324,29 +322,29 @@ const SupportManagementPage = () => {
               <div
                 key={ticket.id}
                 onClick={() => handleSelectTicket(ticket)}
-                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  selectedTicket?.id === ticket.id ? 'bg-blue-50 border-blue-200' : ''
+                className={`p-4 border-b border-border cursor-pointer hover:bg-muted/50 transition-colors ${
+                  selectedTicket?.id === ticket.id ? 'bg-accent border-accent-foreground/20' : ''
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-600" />
+                    <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{ticket.user.name}</h3>
-                      <p className="text-sm text-gray-500 truncate">{ticket.user.email}</p>
+                      <h3 className="font-medium text-foreground truncate">{ticket.user.name}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{ticket.user.email}</p>
                     </div>
                   </div>
                   {ticket.unreadCount > 0 && (
-                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                    <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
                       {ticket.unreadCount}
                     </span>
                   )}
                 </div>
 
-                <h4 className="font-medium text-gray-900 mb-1 truncate">{ticket.subject}</h4>
-                <p className="text-sm text-gray-600 mb-2 truncate">{ticket.lastMessage}</p>
+                <h4 className="font-medium text-foreground mb-1 truncate">{ticket.subject}</h4>
+                <p className="text-sm text-muted-foreground mb-2 truncate">{ticket.lastMessage}</p>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -357,7 +355,7 @@ const SupportManagementPage = () => {
                       {ticket.priority}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500">{formatRelativeTime(ticket.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatRelativeTime(ticket.createdAt)}</span>
                 </div>
               </div>
             ))
@@ -370,32 +368,32 @@ const SupportManagementPage = () => {
         ${!showChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedTicket ? (
           <>
-            {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-4">
-              <div className="flex items-center justify-between">
+            {/* Chat Header - Fixed */}
+            <div className="bg-card border-b border-border p-2 sm:p-4 flex-shrink-0">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center space-x-3">
                   {/* Back button on mobile */}
                   <button 
                     onClick={handleBackToList}
-                    className="md:hidden p-2 text-gray-500 hover:text-gray-700"
+                    className="md:hidden p-2 text-muted-foreground hover:text-foreground"
                   >
                     ←
                   </button>
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-gray-900">{selectedTicket.user.name}</h2>
-                    <p className="text-sm text-gray-500">{selectedTicket.subject}</p>
+                    <h2 className="font-semibold text-foreground">{selectedTicket.user.name}</h2>
+                    <p className="text-sm text-muted-foreground">{selectedTicket.subject}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-wrap md:flex-nowrap w-full md:w-auto">
                   {/* Status Dropdown */}
                   <select
                     value={selectedTicket.status}
                     onChange={(e) => handleTicketStatusChange(selectedTicket.conversationId, e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full md:w-auto px-3 py-1 border border-input bg-background text-foreground rounded text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="open">Open</option>
                     <option value="in_progress">In Progress</option>
@@ -407,25 +405,25 @@ const SupportManagementPage = () => {
                   <select
                     value={selectedTicket.priority}
                     onChange={(e) => handleTicketPriorityChange(selectedTicket.conversationId, e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full md:w-auto px-3 py-1 border border-input bg-background text-foreground rounded text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                   </select>
 
-                  <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Messages - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 overscroll-contain">
               {loadingMessages ? (
                 <div className="flex justify-center items-center h-full">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
               ) : selectedTicket.messages && selectedTicket.messages.length > 0 ? (
                 <>
@@ -437,7 +435,7 @@ const SupportManagementPage = () => {
                       <div key={msg.id}>
                         {showDate && (
                           <div className="flex justify-center mb-4">
-                            <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                            <span className="bg-muted text-muted-foreground text-xs px-3 py-1 rounded-full">
                               {formatDate(msg.createdAt)}
                             </span>
                           </div>
@@ -447,25 +445,25 @@ const SupportManagementPage = () => {
                         >
                           <div
                             className={`
-                              max-w-sm lg:max-w-md px-4 py-3 rounded-lg text-sm
+                              max-w-[80%] sm:max-w-[70%] md:max-w-md px-4 py-3 rounded-lg text-sm
                               ${msg.senderType === 'user' 
-                                ? 'bg-gray-100 text-gray-800 rounded-bl-none shadow-sm' 
-                                : 'bg-blue-600 text-white rounded-br-none'
+                                ? 'bg-muted text-foreground rounded-bl-none shadow-sm' 
+                                : 'bg-primary text-primary-foreground rounded-br-none'
                               }
                             `}
                           >
                             <p>{msg.content}</p>
                             {msg.attachment && (
-                              <div className="mt-2 p-2 bg-gray-200 rounded text-xs">
+                              <div className="mt-2 p-2 bg-background/20 rounded text-xs">
                                 📎 {msg.attachment.name}
                               </div>
                             )}
                             <div className={`flex items-center space-x-1 mt-2 ${msg.senderType === 'user' ? 'justify-start' : 'justify-end'}`}>
-                              <span className={`text-xs ${msg.senderType === 'user' ? 'text-gray-500' : 'text-blue-100'}`}>
+                              <span className={`text-xs ${msg.senderType === 'user' ? 'text-muted-foreground' : 'text-primary-foreground/70'}`}>
                                 {formatTime(msg.createdAt)}
                               </span>
                               {msg.senderType !== 'user' && (
-                                <CheckCircle2 className="w-3 h-3 text-blue-200" />
+                                <CheckCircle2 className="w-3 h-3 text-primary-foreground/70" />
                               )}
                             </div>
                           </div>
@@ -475,20 +473,20 @@ const SupportManagementPage = () => {
                   })}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <MessageSquare className="w-12 h-12 mb-4" />
                   <p>No messages in this conversation yet.</p>
                 </div>
               )}
-              
+
               {/* Sending indicator */}
               {sendingMessage && (
                 <div className="flex justify-end">
-                  <div className="bg-blue-600 px-4 py-3 rounded-lg rounded-br-none max-w-sm">
+                  <div className="bg-primary px-4 py-3 rounded-lg rounded-br-none max-w-[80%]">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-primary-foreground/70 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-primary-foreground/70 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-primary-foreground/70 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -496,29 +494,29 @@ const SupportManagementPage = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            {/* Message Input - Fixed */}
+            <div className="bg-card border-t border-border p-2 sm:p-4 flex-shrink-0">
               {!userInfo ? (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-muted-foreground">
                   <p>Please login to send messages</p>
                 </div>
               ) : (
                 <>
                   {selectedFile && (
-                    <div className="mb-2 p-2 bg-gray-100 rounded-lg flex items-center justify-between">
-                      <span className="text-sm text-gray-600">📎 {selectedFile.name}</span>
+                    <div className="mb-2 p-2 bg-muted rounded-lg flex items-center justify-between">
+                      <span className="text-sm text-foreground">📎 {selectedFile.name}</span>
                       <button
                         onClick={() => setSelectedFile(null)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-destructive hover:text-destructive/80"
                       >
                         ×
                       </button>
                     </div>
                   )}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Paperclip className="w-5 h-5" />
                     </button>
@@ -536,15 +534,15 @@ const SupportManagementPage = () => {
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(e)}
                       placeholder="Type your response..."
                       disabled={sendingMessage}
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      className="flex-1 min-w-0 px-3 py-2 text-sm border border-input bg-background text-foreground rounded-full focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-muted"
                     />
                     <button
                       onClick={handleSendMessage}
                       disabled={(!message.trim() && !selectedFile) || sendingMessage}
-                      className="w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors"
+                      className="w-10 h-10 sm:w-12 sm:h-12 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground rounded-full flex items-center justify-center transition-colors shrink-0"
                     >
                       {sendingMessage ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
                       ) : (
                         <Send className="w-5 h-5" />
                       )}
@@ -556,11 +554,11 @@ const SupportManagementPage = () => {
           </>
         ) : (
           /* No Ticket Selected */
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Support Ticket</h3>
-              <p className="text-gray-500">Choose a ticket from the sidebar to start responding to customer inquiries.</p>
+          <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="text-center p-4">
+              <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Select a Support Ticket</h3>
+              <p className="text-muted-foreground">Choose a ticket from the sidebar to start responding to customer inquiries.</p>
             </div>
           </div>
         )}

@@ -400,7 +400,7 @@ const GroupList = () => {
 
   // Grid View Component
   const GridView = () => (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {processedGroups.map((group) => {
         const myMembership = group.members?.find(member => member.user === userInfo?._id);
         const myContributions = myMembership?.contributions?.total || 0;

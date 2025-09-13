@@ -129,19 +129,23 @@ export default function SessionManager() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <div className={`px-2 py-1 rounded-full text-xs ${
-                              session.isActive 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                            }`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <div
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                session.isActive
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                              }`}
+                            >
                               {session.isActive ? 'Active' : 'Inactive'}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => onRevokeClick(session, user)}
                               disabled={!session.isActive}
+                              className="w-full sm:w-auto"
                             >
                               <LogOut className="mr-2 h-4 w-4" /> Revoke
                             </Button>

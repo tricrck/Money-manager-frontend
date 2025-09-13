@@ -58,3 +58,16 @@ export const fundWallet = (groupId, fundData) =>
   api.post(`/group/${groupId}/fund-wallet`, fundData);
 export const payMember = (groupId, paymentData) =>
   api.post(`/group/${groupId}/pay-member`, paymentData);
+
+export const acceptExternalInvitation = (token, userData) =>
+  api.post(`/group/accept-external-invitation/${token}`, userData);
+
+export const getInvitationDetails = (token) =>
+  api.get(`/group/invitation-details/${token}`);
+
+export const resendInvitation = (groupId, invitationId) =>
+  api.post(`/group/${groupId}/invitations/${invitationId}/resend`);
+
+export const cancelInvitation = (groupId, invitationId) =>
+  api.delete(`/group/${groupId}/invitations/${invitationId}`);
+

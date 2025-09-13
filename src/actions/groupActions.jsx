@@ -83,6 +83,18 @@ import {
     USER_GROUPS_REQUEST,
     USER_GROUPS_SUCCESS,
     USER_GROUPS_FAIL,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_REQUEST,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_SUCCESS,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_FAIL,
+    GROUP_INVITATION_DETAILS_REQUEST,
+    GROUP_INVITATION_DETAILS_SUCCESS,
+    GROUP_INVITATION_DETAILS_FAIL,
+    GROUP_RESEND_INVITATION_REQUEST,
+    GROUP_RESEND_INVITATION_SUCCESS,
+    GROUP_RESEND_INVITATION_FAIL,
+    GROUP_CANCEL_INVITATION_REQUEST,
+    GROUP_CANCEL_INVITATION_SUCCESS,
+    GROUP_CANCEL_INVITATION_FAIL,
   } from '../constants/groupConstants';
   import * as api from '../api/groups';
   
@@ -629,6 +641,82 @@ export const listUserGroups = (userId) => async (dispatch) => {
         error.response && error.response.data.message
           ? error.response.data.message
           : error.message,
+    });
+  }
+};
+
+// Accept external invitation
+export const acceptExternalInvitation = (token, userData) => async (dispatch) => {
+  try {
+    dispatch({ type: GROUP_ACCEPT_EXTERNAL_INVITATION_REQUEST });
+
+    const { data } = await api.acceptExternalInvitation(token, userData);
+
+    dispatch({
+      type: GROUP_ACCEPT_EXTERNAL_INVITATION_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: GROUP_ACCEPT_EXTERNAL_INVITATION_FAIL,
+      payload: error.response?.data?.message || error.message,
+    });
+  }
+};
+
+// Get invitation details
+export const getInvitationDetails = (token) => async (dispatch) => {
+  try {
+    dispatch({ type: GROUP_INVITATION_DETAILS_REQUEST });
+
+    const { data } = await api.getInvitationDetails(token);
+
+    dispatch({
+      type: GROUP_INVITATION_DETAILS_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: GROUP_INVITATION_DETAILS_FAIL,
+      payload: error.response?.data?.message || error.message,
+    });
+  }
+};
+
+// Resend invitation
+export const resendInvitation = (groupId, invitationId) => async (dispatch) => {
+  try {
+    dispatch({ type: GROUP_RESEND_INVITATION_REQUEST });
+
+    const { data } = await api.resendInvitation(groupId, invitationId);
+
+    dispatch({
+      type: GROUP_RESEND_INVITATION_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: GROUP_RESEND_INVITATION_FAIL,
+      payload: error.response?.data?.message || error.message,
+    });
+  }
+};
+
+// Cancel invitation
+export const cancelInvitation = (groupId, invitationId) => async (dispatch) => {
+  try {
+    dispatch({ type: GROUP_CANCEL_INVITATION_REQUEST });
+
+    await api.cancelInvitation(groupId, invitationId);
+
+    dispatch({
+      type: GROUP_CANCEL_INVITATION_SUCCESS,
+      payload: invitationId, // could be useful for reducer to remove from state
+    });
+  } catch (error) {
+    dispatch({
+      type: GROUP_CANCEL_INVITATION_FAIL,
+      payload: error.response?.data?.message || error.message,
     });
   }
 };

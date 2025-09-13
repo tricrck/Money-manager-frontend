@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { login, initiateSocialAuth } from '../../actions/userActions';
 import { LinkContainer } from 'react-router-bootstrap';
+import PhoneVerification from './PhoneVerification';
 
 const LoginFormSkeleton = () => (
   <div className="flex items-center justify-center">
@@ -176,6 +177,7 @@ const LoginForm = () => {
   const [lockoutTime, setLockoutTime] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -186,7 +188,10 @@ const LoginForm = () => {
   // Add this useEffect to handle navigation when userInfo is available
   useEffect(() => {
     if (!userLoading && userInfo) {
-      setSuccessMessage('Login successful! Redirecting...');
+      // Check phone verification
+      if (!userInfo?.isVerified && !sessionStorage.getItem('skipPhoneVerification')) {
+        setShowPhoneVerification(true);
+       }
       navigate('/dashboard');
     }
   }, [userLoading, userInfo, navigate]);
@@ -289,6 +294,11 @@ const LoginForm = () => {
     }
   };
 
+  const handleSkipVerification = () => {
+    sessionStorage.setItem('skipPhoneVerification', 'true');
+    setShowPhoneVerification(false);
+  };
+
   const isLockedOut = lockoutTime && Date.now() < lockoutTime;
   const lockoutRemaining = isLockedOut ? Math.ceil((lockoutTime - Date.now()) / 1000) : 0;
 
@@ -297,6 +307,7 @@ const LoginForm = () => {
   }
 
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8">
       <div className="w-full max-w-lg">
         {/* Success Message */}
@@ -528,6 +539,15 @@ const LoginForm = () => {
         </div>
       </div>
     </div>
+
+    {showPhoneVerification && (
+        <PhoneVerification
+          isOpen={showPhoneVerification}
+          onClose={handleSkipVerification}
+          userInfo={userInfo}
+        />
+      )}
+    </>
   );
 };
 

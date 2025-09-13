@@ -32,6 +32,8 @@ const ChatPage = () => {
     scrollToBottom();
   }, [messages]);
 
+  console.log("messages messages", messages)
+
   const selectedConversationId = messages[0]?.conversationId || paramId;
 
   useEffect(() => {

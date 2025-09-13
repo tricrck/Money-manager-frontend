@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Eye, 
@@ -22,7 +22,9 @@ import {
   Upload,
   UploadCloud,
   Loader2,
-  X
+  X,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -35,12 +37,19 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { register, updateUser, getUserDetails, login, uploadProfilePicture } from '../../actions/userActions';
+import { getInvitationDetails, acceptExternalInvitation } from '../../actions/groupActions';
 
 const UserForm = () => {
   const { id: userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const invitationToken = searchParams.get('token');
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  
+  // Determine the mode of operation
   const isEditing = Boolean(userId);
+  const isExternalInvitation = Boolean(invitationToken && !userId);
+  const isRegularRegistration = !userId && !invitationToken;
 
   // Form fields
   const [name, setName] = useState('');
@@ -72,7 +81,7 @@ const UserForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [phoneError, setPhoneError] = useState('');
 
-  // Redux state
+  // Redux state - User actions
   const userRegister = useSelector((state) => state.userRegister);
   const { loading: loadingRegister, error: errorRegister } = userRegister;
 
@@ -84,6 +93,22 @@ const UserForm = () => {
 
   const userLogin = useSelector((state) => state.userLogin);
   const { userInfo } = userLogin;
+
+  // Redux state - Invitation actions
+  const invitationDetailsState = useSelector((state) => state.invitationDetails);
+  const { 
+    loading: loadingInvitation, 
+    error: errorInvitation, 
+    invitation 
+  } = invitationDetailsState;
+
+  const acceptInvitationState = useSelector((state) => state.acceptExternalInvitation);
+  const { 
+    loading: submittingInvitation, 
+    error: submitInvitationError, 
+    success: invitationSuccess, 
+    invitation: joinedData 
+  } = acceptInvitationState;
 
   // Check if current user is admin
   const isAdmin = userInfo?.role === 'Admin';
@@ -102,6 +127,13 @@ const UserForm = () => {
 
   const roles = ['Member', 'Admin', 'Moderator'];
   const languages = ['English', 'Swahili'];
+
+  // Load invitation details if external invitation
+  useEffect(() => {
+    if (isExternalInvitation) {
+      dispatch(getInvitationDetails(invitationToken));
+    }
+  }, [dispatch, invitationToken, isExternalInvitation]);
 
   // Load user data when editing
   useEffect(() => {
@@ -127,12 +159,25 @@ const UserForm = () => {
       }
     }
   }, [dispatch, userId, user, isEditing]);
-  
 
-  // Show success message
+  // Handle successful invitation acceptance
   useEffect(() => {
-    if (successUpdate) {
-      // Redirect to /profile after short delay
+    if (invitationSuccess && joinedData) {
+      // Store auth token if returned
+      if (joinedData.token) {
+        localStorage.setItem('token', joinedData.token);
+      }
+
+      // Redirect to group page
+      navigate(`/groups/${joinedData.group.id}`, {
+        state: { message: 'Successfully joined the group!' }
+      });
+    }
+  }, [invitationSuccess, joinedData, navigate]);
+
+  // Show success message for regular updates
+  useEffect(() => {
+    if (successUpdate && !isExternalInvitation) {
       const timer = setTimeout(() => {
         setMessage(null);
         navigate('/profile');
@@ -140,7 +185,16 @@ const UserForm = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [successUpdate]);
+  }, [successUpdate, isExternalInvitation]);
+
+  useEffect(() => {
+    if (isExternalInvitation && invitation) {
+      setEmail(invitation.invitedEmail || '');
+      if (invitation.invitedUsername) {
+        setUsername(invitation.invitedUsername);
+      }
+    }
+  }, [invitation, isExternalInvitation]);
 
   // Phone number validation
   const validatePhone = (phone) => {
@@ -193,8 +247,8 @@ const UserForm = () => {
   const submitHandler = (e) => {
     e.preventDefault();
     
-    // Validate password match for registration
-    if (!isEditing && password !== confirmPassword) {
+    // Validate password match for registration and invitations
+    if ((isRegularRegistration || isExternalInvitation) && password !== confirmPassword) {
       setMessage('Passwords do not match');
       return;
     }
@@ -205,6 +259,7 @@ const UserForm = () => {
     }
     
     if (isEditing) {
+      // Handle user update
       const updateData = { 
         _id: userId, 
         name, 
@@ -225,7 +280,25 @@ const UserForm = () => {
       }
 
       dispatch(updateUser(updateData));
+    } else if (isExternalInvitation) {
+      // Handle external invitation acceptance
+      const invitationData = {
+        name,
+        email,
+        phoneNumber,
+        password,
+        username
+      };
+      
+      dispatch(acceptExternalInvitation(invitationToken, invitationData)).then(() => {
+        return dispatch(login(phoneNumber, password));
+      }).then(() => {
+        navigate('/');
+      }).catch(error => {
+        console.error('Registration or login failed:', error);
+      });
     } else {
+      // Handle regular registration
       dispatch(register({ 
         name, 
         email, 
@@ -288,9 +361,53 @@ const UserForm = () => {
     }
   };
 
-  const loading = loadingRegister || loadingUpdate || loadingDetails;
-  const error = errorRegister || errorUpdate || errorDetails;
+  // Get appropriate loading and error states
+  const getLoadingState = () => {
+    if (isEditing) return loadingUpdate || loadingDetails;
+    if (isExternalInvitation) return loadingInvitation || submittingInvitation;
+    return loadingRegister;
+  };
 
+  const getErrorState = () => {
+    if (isEditing) return errorUpdate || errorDetails;
+    if (isExternalInvitation) return errorInvitation || submitInvitationError;
+    return errorRegister;
+  };
+
+  const loading = getLoadingState();
+  const error = getErrorState();
+
+  // Loading state for invitation details
+  if (isExternalInvitation && loadingInvitation) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading invitation details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid invitation
+  if (isExternalInvitation && errorInvitation && !invitation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="max-w-md mx-auto text-center">
+          <CardContent className="pt-6">
+            <div className="text-red-600 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold mb-2">Invalid Invitation</h2>
+            <p className="text-muted-foreground mb-4">{errorInvitation}</p>
+            <Button onClick={() => navigate('/')}>
+              Go to Homepage
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading state for editing user
   if (loadingDetails && userId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -302,38 +419,92 @@ const UserForm = () => {
     );
   }
 
+  // Get page title and description
+  const getPageInfo = () => {
+    if (isEditing) {
+      return {
+        title: "Edit User Profile",
+        description: "Update user information and preferences",
+        icon: <User className="h-6 w-6" />
+      };
+    } else if (isExternalInvitation) {
+      return {
+        title: `Join ${invitation?.group?.name}`,
+        description: `You've been invited by ${invitation?.inviter?.name} to join as a ${invitation?.role}`,
+        icon: <Users className="h-6 w-6" />
+      };
+    } else {
+      return {
+        title: "Create New Account",
+        description: "Fill in your details to create a new account",
+        icon: <UserPlus className="h-6 w-6" />
+      };
+    }
+  };
+
+  const pageInfo = getPageInfo();
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-          {/* Back Button (left-aligned only if editing) */}
-          {isEditing && (
-            <div className="mb-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate(-1)}
-                title="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Centered Heading */}
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              {isEditing ? <User className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
-              {isEditing ? "Edit User Profile" : "Create New Account"}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {isEditing
-                ? "Update user information and preferences"
-                : "Fill in your details to create a new account"}
-            </p>
+        {/* Back Button (left-aligned only if editing) */}
+        {isEditing && (
+          <div className="mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(-1)}
+              title="Back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
+        )}
 
+        {/* Centered Heading */}
+        <div className="flex flex-col items-center text-center">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            {pageInfo.icon}
+            {pageInfo.title}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {pageInfo.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Invitation Info Card (for external invitations) */}
+      {isExternalInvitation && invitation && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <MessageSquare className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-blue-900 mb-1">Group Invitation</h3>
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>Group:</strong> {invitation.group?.name}
+                </p>
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>Role:</strong> {invitation.role}
+                </p>
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>Invited by:</strong> {invitation.inviter?.name}
+                </p>
+                {invitation.message && (
+                  <div className="mt-3 p-3 bg-blue-100 rounded-md">
+                    <p className="text-sm text-blue-800">
+                      <strong>Message:</strong> {invitation.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status Messages */}
       {message && (
@@ -357,129 +528,127 @@ const UserForm = () => {
       <form onSubmit={submitHandler} className="space-y-6">
         {/* User Status Card (Edit mode only) */}
         {isEditing && isAdmin && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Account Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Current Status</span>
-                      <div className="flex gap-2">
-                        <Badge variant={user.isVerified ? "default" : "secondary"}>
-                          {user.isVerified ? "Verified" : "Unverified"}
-                        </Badge>
-                        <Badge variant={user.isActive ? "default" : "destructive"}>
-                          {user.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="grid gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Created:</span>
-                        <span className="font-medium">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {user.updatedAt && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Last Updated:</span>
-                          <span className="font-medium">
-                            {new Date(user.updatedAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Account Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Current Status</span>
+                  <div className="flex gap-2">
+                    <Badge variant={user.isVerified ? "default" : "secondary"}>
+                      {user.isVerified ? "Verified" : "Unverified"}
+                    </Badge>
+                    <Badge variant={user.isActive ? "default" : "destructive"}>
+                      {user.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-          {isEditing && !isAdmin && (
-            <div className="w-full flex justify-center">
-              <div className="w-full max-w-lg space-y-6 flex flex-col items-center">
-                {/* Avatar Preview */}
-                <div className="relative">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={previewImage || user.profilePicture} className="object-cover" />
-                    <AvatarFallback>
-                      <User className="h-12 w-12" />
-                    </AvatarFallback>
-                  </Avatar>
-                  {previewImage && (
-                    <button
-                      onClick={() => setPreviewImage(null)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                </div>
+                <Separator />
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="font-medium">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {user.updatedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Updated:</span>
+                      <span className="font-medium">
+                        {new Date(user.updatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Choose File */}
-                <div className="w-full flex flex-col items-center gap-2">
-                    <Label htmlFor="profilePicture">Profile Picture</Label>
-                    <Input
-                      id="profilePicture"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <Label
-                      htmlFor="profilePicture"
-                      className="cursor-pointer border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md inline-flex items-center justify-center gap-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        <span>Choose Image</span>
-                      </div>
-                    </Label>
-                    <p className="text-sm text-muted-foreground text-center">
-                      {selectedFile ? selectedFile.name : "JPG, PNG or GIF (max 5MB)"}
-                    </p>
-                  </div>
-
-                {/* Upload Button */}
-                {selectedFile && (
-                  <Button
-                    type="button"
-                    onClick={handleUpload}
-                    disabled={isUploading}
-                    className="w-full gap-2"
+        {/* Profile Picture Upload (Edit mode only, non-admin) */}
+        {isEditing && !isAdmin && (
+          <div className="w-full flex justify-center">
+            <div className="w-full max-w-lg space-y-6 flex flex-col items-center">
+              {/* Avatar Preview */}
+              <div className="relative">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={previewImage || user.profilePicture} className="object-cover" />
+                  <AvatarFallback>
+                    <User className="h-12 w-12" />
+                  </AvatarFallback>
+                </Avatar>
+                {previewImage && (
+                  <button
+                    onClick={() => setPreviewImage(null)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
                   >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="h-4 w-4" />
-                        <span>Upload</span>
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {/* Error */}
-                {uploadError && (
-                  <Alert variant="destructive" className="w-full">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Upload Error</AlertTitle>
-                    <AlertDescription>{uploadError}</AlertDescription>
-                  </Alert>
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
               </div>
+
+              {/* Choose File */}
+              <div className="w-full flex flex-col items-center gap-2">
+                <Label htmlFor="profilePicture">Profile Picture</Label>
+                <Input
+                  id="profilePicture"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Label
+                  htmlFor="profilePicture"
+                  className="cursor-pointer border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md inline-flex items-center justify-center gap-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    <span>Choose Image</span>
+                  </div>
+                </Label>
+                <p className="text-sm text-muted-foreground text-center">
+                  {selectedFile ? selectedFile.name : "JPG, PNG or GIF (max 5MB)"}
+                </p>
+              </div>
+
+              {/* Upload Button */}
+              {selectedFile && (
+                <Button
+                  type="button"
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-4 w-4" />
+                      <span>Upload</span>
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Error */}
+              {uploadError && (
+                <Alert variant="destructive" className="w-full">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Upload Error</AlertTitle>
+                  <AlertDescription>{uploadError}</AlertDescription>
+                </Alert>
+              )}
             </div>
-          )}
-
-
-
+          </div>
+        )}
 
         {/* Basic Information */}
         <Card>
@@ -493,18 +662,19 @@ const UserForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Enter your full name"
-                />
-              </div>
-               {isEditing &&(
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            {(isEditing || isExternalInvitation) && (
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -512,11 +682,11 @@ const UserForm = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  required={isEditing}
+                  required={isEditing || isExternalInvitation}
                   placeholder="Choose a username"
                 />
               </div>
-               )}
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
@@ -553,24 +723,25 @@ const UserForm = () => {
                 </p>
               )}
             </div>
-              {isEditing &&(
-            <div className="space-y-2">
-              <Label htmlFor="idNumber">ID Number</Label>
-              <Input
-                id="idNumber"
-                type="text"
-                value={idNumber}
-                onChange={(e) => setIdNumber(e.target.value)}
-                required={isEditing}
-                placeholder="Enter your ID number"
-              />
-            </div>
-              )}
+
+            {(isEditing || isExternalInvitation) && (
+              <div className="space-y-2">
+                <Label htmlFor="idNumber">ID Number</Label>
+                <Input
+                  id="idNumber"
+                  type="text"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                  required={isEditing}
+                  placeholder="Enter your ID number"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Security Section (Registration only) */}
-        {!isEditing && (
+        {/* Security Section (Registration and External Invitation) */}
+        {(isRegularRegistration || isExternalInvitation) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -712,6 +883,7 @@ const UserForm = () => {
                           accept="image/*"
                           onChange={handleFileChange}
                           className="hidden"
+                          ref={fileInputRef}
                         />
                         <Label
                           htmlFor="profilePicture"
@@ -873,6 +1045,25 @@ const UserForm = () => {
           </Card>
         )}
 
+        {/* Already have an account link (for external invitations) */}
+        {isExternalInvitation && (
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Button
+                  type="button"
+                  variant="link"
+                  className="p-0 h-auto font-medium text-primary"
+                  onClick={() => navigate(`/login?token=${invitationToken}`)}
+                >
+                  Login here instead
+                </Button>
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Submit Button */}
         <Card>
           <CardContent className="pt-6">
@@ -885,12 +1076,12 @@ const UserForm = () => {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {isEditing ? 'Updating...' : 'Creating Account...'}
+                  {isEditing ? 'Updating...' : isExternalInvitation ? 'Joining Group...' : 'Creating Account...'}
                 </div>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {isEditing ? 'Update User' : 'Create Account'}
+                  {isEditing ? 'Update User' : isExternalInvitation ? 'Create Account & Join Group' : 'Create Account'}
                 </>
               )}
             </Button>

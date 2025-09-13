@@ -319,7 +319,7 @@ const LogsPage = () => {
         )}
 
         {/* Stats Dashboard */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 grid-cols-3 md:grid-cols-2 lg:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
@@ -488,45 +488,49 @@ const LogsPage = () => {
                   processedLogs.map((log, index) => (
                     <div key={log.id || index} className="group">
                       <div 
-                        className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-700/50 transition-all duration-200 border border-gray-600/50 hover:border-gray-500"
+                        className="flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-lg hover:bg-gray-700/50 transition-all duration-200 border border-gray-600/50 hover:border-gray-500"
                       >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRowExpand(log.id || index)}
-                          className="p-1 hover:text-white"
-                        >
-                          {expandedRows.has(log.id || index) ? 
-                            <ChevronDown className="h-4 w-4" /> : 
-                            <ChevronRight className="h-4 w-4" />
-                          }
-                        </Button>
-
-                        <div className="flex items-center gap-2 min-w-32">
-                          <div className="text-xs font-mono">
-                            {log.timestamp.split(' ')[1]}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {getTimeAgo(log.timestamp)}
-                          </div>
+                        {/* Expand Button */}
+                        <div className="flex items-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRowExpand(log.id || index)}
+                            className="p-1 hover:text-white"
+                          >
+                            {expandedRows.has(log.id || index) ? 
+                              <ChevronDown className="h-4 w-4" /> : 
+                              <ChevronRight className="h-4 w-4" />
+                            }
+                          </Button>
                         </div>
 
+                        {/* Timestamp */}
+                        <div className="flex items-center gap-2 min-w-32 text-xs font-mono">
+                          <span>{log.timestamp.split(' ')[1]}</span>
+                          <span className="text-gray-500">{getTimeAgo(log.timestamp)}</span>
+                        </div>
+
+                        {/* Level */}
                         <div className="flex items-center gap-2 min-w-20">
                           {getLevelBadge(log.levelName)}
                         </div>
 
-                        <div className="flex items-center gap-2 min-w-48 max-w-48">
+                        {/* Source */}
+                        <div className="flex items-center gap-2 min-w-0 md:min-w-48 md:max-w-48">
                           {getSourceIcon(log.source)}
                           <span className="text-xs truncate font-mono">
                             {formatSource(log.source)}
                           </span>
                         </div>
 
+                        {/* Message */}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">{log.message}</p>
                         </div>
 
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Copy Action */}
+                        <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -543,8 +547,9 @@ const LogsPage = () => {
 
                       {/* Expanded Details */}
                       {expandedRows.has(log.id || index) && (
-                        <div className="ml-12 mt-2 p-4 rounded-lg border border-black">
+                        <div className="ml-0 md:ml-12 mt-2 p-4 rounded-lg border border-black">
                           <div className="grid gap-4 md:grid-cols-2">
+                            {/* Details */}
                             <div className="space-y-2">
                               <h4 className="text-sm font-medium">Details</h4>
                               <div className="space-y-1 text-sm">
@@ -554,21 +559,26 @@ const LogsPage = () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <span className="w-16">Level:</span>
-                                  <span className="text-black">{log.levelName} ({log.level})</span>
+                                  <span className="text-black">
+                                    {log.levelName} ({log.level})
+                                  </span>
                                 </div>
                                 <div className="flex gap-2">
                                   <span className="w-16">Source:</span>
-                                  <span className="font-mono text-xs break-all">{log.source}</span>
+                                  <span className="font-mono text-xs break-all">
+                                    {log.source}
+                                  </span>
                                 </div>
                               </div>
                             </div>
 
+                            {/* Message & StackTrace */}
                             <div className="space-y-2">
                               <h4 className="text-sm font-medium">Message</h4>
                               <div className="p-3 rounded font-mono text-xs whitespace-pre-wrap max-h-32 overflow-y-auto">
                                 {log.message}
                               </div>
-                              
+
                               {log.stackTrace && showStackTrace && (
                                 <div className="space-y-2">
                                   <h4 className="text-sm font-medium">Stack Trace</h4>

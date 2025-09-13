@@ -160,8 +160,8 @@ const MyLoansList = ({ history }) => {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Loans</h1>
-          <p className="text-gray-600 mt-1">Manage and track your loan applications</p>
+          <h1 className="text-3xl font-bold">My Loans</h1>
+          <p className="mt-1">Manage and track your loan applications</p>
         </div>
         {myGroupsList.length > 0 && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -240,7 +240,7 @@ const MyLoansList = ({ history }) => {
       </div>
 
       {/* Filters and Search */}
-      <Card>
+      <Card className={"hidden md:block"}>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">

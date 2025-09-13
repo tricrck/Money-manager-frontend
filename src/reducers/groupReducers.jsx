@@ -82,7 +82,19 @@ import {
     GROUP_GET_MY_JOIN_REQUESTS_FAIL,
     USER_GROUPS_REQUEST,
     USER_GROUPS_SUCCESS,
-    USER_GROUPS_FAIL
+    USER_GROUPS_FAIL,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_REQUEST,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_SUCCESS,
+    GROUP_ACCEPT_EXTERNAL_INVITATION_FAIL,
+    GROUP_INVITATION_DETAILS_REQUEST,
+    GROUP_INVITATION_DETAILS_SUCCESS,
+    GROUP_INVITATION_DETAILS_FAIL,
+    GROUP_RESEND_INVITATION_REQUEST,
+    GROUP_RESEND_INVITATION_SUCCESS,
+    GROUP_RESEND_INVITATION_FAIL,
+    GROUP_CANCEL_INVITATION_REQUEST,
+    GROUP_CANCEL_INVITATION_SUCCESS,
+    GROUP_CANCEL_INVITATION_FAIL,
   } from '../constants/groupConstants';
   
   export const groupCreateReducer = (state = {}, action) => {
@@ -448,3 +460,60 @@ export const userGroupsReducer = (state = { userGroups: [] }, action) => {
       return state;
   }
 };
+
+// Accept external invitation
+export const acceptExternalInvitationReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_ACCEPT_EXTERNAL_INVITATION_REQUEST:
+      return { loading: true };
+    case GROUP_ACCEPT_EXTERNAL_INVITATION_SUCCESS:
+      return { loading: false, success: true, invitation: action.payload };
+    case GROUP_ACCEPT_EXTERNAL_INVITATION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Get invitation details
+export const invitationDetailsReducer = (state = { invitation: {} }, action) => {
+  switch (action.type) {
+    case GROUP_INVITATION_DETAILS_REQUEST:
+      return { ...state, loading: true };
+    case GROUP_INVITATION_DETAILS_SUCCESS:
+      return { loading: false, invitation: action.payload };
+    case GROUP_INVITATION_DETAILS_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Resend invitation
+export const resendInvitationReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_RESEND_INVITATION_REQUEST:
+      return { loading: true };
+    case GROUP_RESEND_INVITATION_SUCCESS:
+      return { loading: false, success: true, data: action.payload };
+    case GROUP_RESEND_INVITATION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Cancel invitation
+export const cancelInvitationReducer = (state = {}, action) => {
+  switch (action.type) {
+    case GROUP_CANCEL_INVITATION_REQUEST:
+      return { loading: true };
+    case GROUP_CANCEL_INVITATION_SUCCESS:
+      return { loading: false, success: true, deletedInvitationId: action.payload };
+    case GROUP_CANCEL_INVITATION_FAIL:
+      return { loading: false, error: action.payload };
+    default:
+      return state;
+  }
+};
+

@@ -47,6 +47,7 @@ import {
 import Loader from './Loader';
 import DashboardContent from './DashboardContent';
 import usePushNotifications from './usePushNotifications';
+import ThemeToggle from './ThemeToggle';
 
 const ProfessionalDashboard = ({ children }) => {
   const dispatch = useDispatch();
@@ -139,7 +140,8 @@ const ProfessionalDashboard = ({ children }) => {
       {/* Logo/Brand */}
       <div className="flex h-16 items-center border-b px-6">
         <Building2 className="h-8 w-8 text-primary" />
-        <span className="ml-2 text-xl font-bold text-primary">Money Manager</span>
+        <span className="ml-2 text-base font-bold text-primary">Money Manager</span>
+        <ThemeToggle />
       </div>
 
       {/* Navigation */}
@@ -249,6 +251,8 @@ const ProfessionalDashboard = ({ children }) => {
           </div>
           
           {/* Mobile user menu */}
+          <div className="flex items-center space-x-2">
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -264,6 +268,10 @@ const ProfessionalDashboard = ({ children }) => {
                 <p className="text-xs text-muted-foreground capitalize">{userInfo?.role}</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
               <LinkContainer to="/profile">
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
@@ -276,6 +284,7 @@ const ProfessionalDashboard = ({ children }) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         {/* Main content area */}

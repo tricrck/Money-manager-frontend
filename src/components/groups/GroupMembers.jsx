@@ -234,14 +234,19 @@ const GroupMembers = forwardRef(({
 
   // Handle invite user
   const handleInviteUser = () => {
-    if (!usernameSearch.trim()) return;
-    
+    if (!usernameSearch.trim() && !emailSearch.trim()) return;
+
     const inviteData = {
-      username: usernameSearch.trim(),
       role: memberRole,
-      message: inviteMessage.trim()
+      message: inviteMessage.trim(),
     };
-    
+
+    if (usernameSearch.trim()) {
+      inviteData.username = usernameSearch.trim();
+    } else if (emailSearch.trim()) {
+      inviteData.email = emailSearch.trim();
+    }
+
     dispatch(inviteUser(group._id, inviteData));
   };
 
@@ -363,7 +368,18 @@ const GroupMembers = forwardRef(({
               )}
 
               <div className="space-y-2">
-                <Label>Select User to Invite</Label>
+                <div className="space-y-2">
+                  <Label>Invite by Username or Email</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* OR Email Input */}
+                    <Input
+                      type="email"
+                      placeholder="Enter email..."
+                      value={emailSearch}
+                      onChange={(e) => setEmailSearch(e.target.value)}
+                    />
+                  </div>
+
                 <Select
                   value={usernameSearch}
                   onValueChange={(value) => setUsernameSearch(value)}
@@ -389,6 +405,10 @@ const GroupMembers = forwardRef(({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                    You can invite existing users by username or external users by email.
+                  </p>
+                </div>
               </div>
 
                 <div className="space-y-2">
@@ -422,7 +442,10 @@ const GroupMembers = forwardRef(({
 
                 <Button 
                   onClick={handleInviteUser} 
-                  disabled={loadingInvite || !usernameSearch.trim()}
+                  disabled={
+                      loadingInvite || 
+                      (!usernameSearch.trim() && !emailSearch.trim())
+                    }
                   className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 >
                   {loadingInvite ? (
